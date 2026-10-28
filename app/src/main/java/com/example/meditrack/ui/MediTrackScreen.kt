@@ -25,6 +25,11 @@ import com.example.meditrack.model.MedicationRecord
 import com.example.meditrack.ui.state.MediTrackState
 import com.example.meditrack.ui.state.rememberMediTrackState
 import com.example.meditrack.ui.theme.*
+import androidx.compose.foundation.clickable
+import com.example.meditrack.ui.state.MedicationFormState
+import com.example.meditrack.ui.state.formatTime12h
+import com.example.meditrack.ui.state.parseTime12h
+import com.example.meditrack.ui.state.rememberMedicationFormState
 
 /** Stage one: records come from session state; summary is still a wireframe fixture. */
 @Composable
@@ -46,7 +51,7 @@ fun MediTrackScreen(
                 DashboardHeader()
                 SummaryGrid()
                 RegimenProgress()
-                MedicationForm()
+                MedicationForm(onAddRecord = state::addRecord)
                 LoggedRecords(
                     records = state.records,
                     showEmptyView = showEmptyView,
@@ -154,20 +159,31 @@ private fun RegimenProgress() {
 }
 
 @Composable
-private fun MedicationForm() {
-    var medicationName by rememberSaveable { mutableStateOf("") }
-    var note by rememberSaveable { mutableStateOf("") }
+private fun MedicationForm(
+    onAddRecord: (MedicationRecord) -> Unit,
+    form: MedicationFormState = rememberMedicationFormState(),
+) {
     var taken by rememberSaveable { mutableStateOf(true) }
+    var savedMessage by rememberSaveable { mutableStateOf<String?>(null) }
     Surface(shape = RoundedCornerShape(32.dp), color = PanelBackground) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 SmallIcon(MediTrackIcons.Add, Teal)
                 Text("Log Medication Record", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
             }
-            FormField("Medication or Supplement Name", medicationName, { medicationName = it }, "e.g., Multivitamin", icon = MediTrackIcons.Pill)
+            FormField(
+                "Medication or Supplement Name", form.name, { form.updateName(it); savedMessage = null }, "e.g., Multivitamin",
+                icon = MediTrackIcons.Pill, error = form.nameError.takeIf { form.showErrors },
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FormField("Scheduled Time", "08:30 AM", {}, "", Modifier.weight(1f), icon = MediTrackIcons.Clock, readOnly = true)
-                FormField("Actual Time", "08:45 AM", {}, "", Modifier.weight(1f), icon = MediTrackIcons.Clock, readOnly = true)
+                TimeField(
+                    "Scheduled Time", form.scheduledTime, { form.scheduledTime = it }, Modifier.weight(1f),
+                    error = form.scheduledTimeError.takeIf { form.showErrors },
+                )
+                TimeField(
+                    "Actual Time", form.actualTime, { form.actualTime = it }, Modifier.weight(1f),
+                    error = form.actualTimeError.takeIf { form.showErrors },
+                )
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Dose Status", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
@@ -186,32 +202,90 @@ private fun MedicationForm() {
                     ) { Text("Missed") }
                 }
             }
-            FormField("Context / Campus Routine Note", note, { note = it }, "e.g., Taken with breakfast before 9 AM lecture in Hall B", multiline = true)
+            FormField("Context / Campus Routine Note (optional)", form.note, { form.updateNote(it) }, "e.g., Taken with breakfast before 9 AM lecture in Hall B", multiline = true)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { medicationName = ""; note = ""; taken = true }) {
-                    SmallIcon(MediTrackIcons.Reset, TextSecondary)
-                    Text("Reset", color = TextSecondary)
-                }
-                // Record persistence belongs to the next implementation stage.
-                Button(onClick = {}, enabled = false, colors = ButtonDefaults.buttonColors(disabledContainerColor = Teal.copy(alpha = 0.6f), disabledContentColor = Color.White)) {
+                Button(
+                    onClick = {
+                        val record = form.submit(if (taken) DoseStatus.TAKEN else DoseStatus.MISSED)
+                        if (record != null) {
+                            onAddRecord(record)
+                            savedMessage = "${record.name} added to today's records."
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Teal, contentColor = Color.White),
+                ) {
                     SmallIcon(MediTrackIcons.Add, Color.White)
                     Text("Add Record")
                 }
             }
-            Text("UI preview: sample data. Saving records and choosing times will be available in the next stage.", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            savedMessage?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = TakenGreen)
+            }
         }
     }
 }
 
 @Composable
+private fun TimeField(
+    label: String, value: String?, onTimeSelected: (String) -> Unit,
+    modifier: Modifier = Modifier, error: String? = null,
+) {
+    var showPicker by rememberSaveable { mutableStateOf(false) }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+        Row(
+            Modifier.fillMaxWidth().background(Color.White)
+                .clickable(onClickLabel = "Choose $label") { showPicker = true }
+                .padding(16.dp)
+                .semantics { contentDescription = "$label: ${value ?: "not set"}" },
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SmallIcon(MediTrackIcons.Clock, TextSecondary)
+            Text(
+                value ?: "Select",
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (value != null) TextPrimary else TextSecondary.copy(alpha = 0.65f),
+            )
+        }
+        if (error != null) Text(error, style = MaterialTheme.typography.bodySmall, color = MissedRed)
+    }
+    if (showPicker) {
+        MediTimePickerDialog(
+            title = label, initialTime = value,
+            onDismiss = { showPicker = false },
+            onConfirm = { onTimeSelected(it); showPicker = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MediTimePickerDialog(
+    title: String, initialTime: String?, onDismiss: () -> Unit, onConfirm: (String) -> Unit,
+) {
+    val (hour, minute) = initialTime?.let(::parseTime12h) ?: (8 to 0)
+    val pickerState = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = false)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { TimePicker(state = pickerState) },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(formatTime12h(pickerState.hour, pickerState.minute)) }) { Text("OK", color = Teal) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+    )
+}
+
+@Composable
 private fun FormField(
     label: String, value: String, onValueChange: (String) -> Unit, placeholder: String,
-    modifier: Modifier = Modifier, icon: ImageVector? = null, multiline: Boolean = false, readOnly: Boolean = false,
+    modifier: Modifier = Modifier, icon: ImageVector? = null, multiline: Boolean = false,
+    error: String? = null,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
         BasicTextField(
-            value = value, onValueChange = onValueChange, readOnly = readOnly,
+            value = value, onValueChange = onValueChange,
             singleLine = !multiline, minLines = if (multiline) 2 else 1,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextPrimary),
             modifier = Modifier.fillMaxWidth().background(Color.White).padding(16.dp)
@@ -226,6 +300,7 @@ private fun FormField(
                 }
             },
         )
+        if (error != null) Text(error, style = MaterialTheme.typography.bodySmall, color = MissedRed)
     }
 }
 
@@ -234,14 +309,14 @@ private fun LoggedRecords(records: List<MedicationRecord>, showEmptyView: Boolea
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Today's Logged Records", modifier = Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium)
-            Text(if (showEmptyView) "0 Records" else "3 Records", modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+            Text(if (showEmptyView) "0 Records" else "${records.size} Records",  modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
             TextButton(onClick = onToggleEmpty, contentPadding = PaddingValues(horizontal = 4.dp)) {
                 SmallIcon(MediTrackIcons.Eye, Teal)
                 Spacer(Modifier.width(4.dp))
                 Text(if (showEmptyView) "Show\nRecords" else "Toggle\nEmpty View", style = MaterialTheme.typography.labelSmall)
             }
         }
-        if (showEmptyView) {
+        if (showEmptyView || records.isEmpty()) {
             EmptyRecords()
         } else {
             records.forEach { RecordCard(it) }
