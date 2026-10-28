@@ -18,14 +18,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.meditrack.model.DoseStatus
+import com.example.meditrack.model.MedicationRecord
+import com.example.meditrack.ui.state.MediTrackState
+import com.example.meditrack.ui.state.rememberMediTrackState
 import com.example.meditrack.ui.theme.*
 
-/** Commit-two UI prototype. Summary and records are independent wireframe fixtures. */
+/** Stage one: records come from session state; summary is still a wireframe fixture. */
 @Composable
-fun MediTrackScreen(modifier: Modifier = Modifier) {
+fun MediTrackScreen(
+    modifier: Modifier = Modifier,
+    state: MediTrackState = rememberMediTrackState(initialRecords = sampleMedicationRecords),
+) {
     var showEmptyView by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         modifier = modifier.fillMaxSize().imePadding(),
@@ -41,7 +47,11 @@ fun MediTrackScreen(modifier: Modifier = Modifier) {
                 SummaryGrid()
                 RegimenProgress()
                 MedicationForm()
-                LoggedRecords(showEmptyView = showEmptyView, onToggleEmpty = { showEmptyView = !showEmptyView })
+                LoggedRecords(
+                    records = state.records,
+                    showEmptyView = showEmptyView,
+                    onToggleEmpty = { showEmptyView = !showEmptyView },
+                )
                 AcademicFooter()
             }
         }
@@ -219,16 +229,8 @@ private fun FormField(
     }
 }
 
-private data class SampleRecord(val name: String, val scheduled: String, val actual: String, val note: String, val taken: Boolean)
-
-private val sampleRecords = listOf(
-    SampleRecord("Sertraline 50mg", "08:00 AM", "08:15 AM", "Taken after breakfast in student dining hall", true),
-    SampleRecord("Daily Multivitamin + Iron", "12:30 PM", "12:40 PM", "With lunch before chemistry lab", true),
-    SampleRecord("Allergy Relief (Cetirizine)", "07:00 PM", "--", "Stayed late in library study group, forgot pack", false),
-)
-
 @Composable
-private fun LoggedRecords(showEmptyView: Boolean, onToggleEmpty: () -> Unit) {
+private fun LoggedRecords(records: List<MedicationRecord>, showEmptyView: Boolean, onToggleEmpty: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Today's Logged Records", modifier = Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium)
@@ -242,30 +244,31 @@ private fun LoggedRecords(showEmptyView: Boolean, onToggleEmpty: () -> Unit) {
         if (showEmptyView) {
             EmptyRecords()
         } else {
-            sampleRecords.forEach { RecordCard(it) }
+            records.forEach { RecordCard(it) }
         }
     }
 }
 
 @Composable
-private fun RecordCard(record: SampleRecord) {
-    val statusColor = if (record.taken) TakenGreen else MissedRed
+private fun RecordCard(record: MedicationRecord) {
+    val taken = record.status == DoseStatus.TAKEN
+    val statusColor = if (taken) TakenGreen else MissedRed
     Row(Modifier.fillMaxWidth().background(Color.White).height(IntrinsicSize.Min)) {
         Spacer(Modifier.width(4.dp).fillMaxHeight().background(statusColor))
         Column(Modifier.weight(1f).padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(record.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                 Row(
-                    Modifier.background(if (record.taken) TakenContainer else MissedContainer, CircleShape).padding(horizontal = 8.dp, vertical = 2.dp),
+                    Modifier.background(if (taken) TakenContainer else MissedContainer, CircleShape).padding(horizontal = 8.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(if (record.taken) MediTrackIcons.Check else MediTrackIcons.Close, null, Modifier.size(12.dp), tint = statusColor)
-                    Text(if (record.taken) "Taken" else "Missed", style = MaterialTheme.typography.labelSmall, color = statusColor)
+                    Icon(if (taken) MediTrackIcons.Check else MediTrackIcons.Close, null, Modifier.size(12.dp), tint = statusColor)
+                    Text(if (taken) "Taken" else "Missed", style = MaterialTheme.typography.labelSmall, color = statusColor)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Sched: ${record.scheduled}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                Text("Actual: ${record.actual}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = statusColor)
+                Text("Sched: ${record.scheduledTime}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                Text("Actual: ${record.actualTime ?: "--"}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = statusColor)
             }
             Text("\"${record.note}\"", modifier = Modifier.fillMaxWidth().background(PanelBackground).padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
         }
