@@ -1,6 +1,7 @@
 package com.example.meditrack.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -23,15 +24,14 @@ import androidx.compose.ui.unit.dp
 import com.example.meditrack.model.DoseStatus
 import com.example.meditrack.model.MedicationRecord
 import com.example.meditrack.ui.state.MediTrackState
-import com.example.meditrack.ui.state.rememberMediTrackState
-import com.example.meditrack.ui.theme.*
-import androidx.compose.foundation.clickable
 import com.example.meditrack.ui.state.MedicationFormState
 import com.example.meditrack.ui.state.formatTime12h
 import com.example.meditrack.ui.state.parseTime12h
 import com.example.meditrack.ui.state.rememberMedicationFormState
+import com.example.meditrack.ui.state.rememberMediTrackState
+import com.example.meditrack.ui.theme.*
 
-/** Stage one: records come from session state; summary is still a wireframe fixture. */
+/** Stage two: the form saves records into session state; summary is still a wireframe fixture. */
 @Composable
 fun MediTrackScreen(
     modifier: Modifier = Modifier,
@@ -163,7 +163,7 @@ private fun MedicationForm(
     onAddRecord: (MedicationRecord) -> Unit,
     form: MedicationFormState = rememberMedicationFormState(),
 ) {
-    var taken by rememberSaveable { mutableStateOf(true) }
+    val taken = form.status == DoseStatus.TAKEN
     var savedMessage by rememberSaveable { mutableStateOf<String?>(null) }
     Surface(shape = RoundedCornerShape(32.dp), color = PanelBackground) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -181,32 +181,40 @@ private fun MedicationForm(
                     error = form.scheduledTimeError.takeIf { form.showErrors },
                 )
                 TimeField(
-                    "Actual Time", form.actualTime, { form.actualTime = it }, Modifier.weight(1f),
+                    "Actual Time", form.actualTime, form::updateActualTime, Modifier.weight(1f),
                     error = form.actualTimeError.takeIf { form.showErrors },
+                    enabled = form.isActualTimeEnabled, disabledText = "Not taken",
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Dose Status", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     SegmentedButton(
-                        selected = taken, onClick = { taken = true },
+                        selected = taken, onClick = { form.selectStatus(DoseStatus.TAKEN); savedMessage = null },
                         shape = SegmentedButtonDefaults.itemShape(0, 2),
                         colors = SegmentedButtonDefaults.colors(activeContainerColor = Teal, activeContentColor = Color.White, inactiveContainerColor = TrackBackground.copy(alpha = 0.4f), inactiveBorderColor = Color.Transparent, activeBorderColor = Color.Transparent),
                         icon = { SmallIcon(MediTrackIcons.Check, if (taken) Color.White else TextSecondary) },
                     ) { Text("Taken") }
                     SegmentedButton(
-                        selected = !taken, onClick = { taken = false },
+                        selected = !taken, onClick = { form.selectStatus(DoseStatus.MISSED); savedMessage = null },
                         shape = SegmentedButtonDefaults.itemShape(1, 2),
                         colors = SegmentedButtonDefaults.colors(activeContainerColor = MissedRed, activeContentColor = Color.White, inactiveContainerColor = TrackBackground.copy(alpha = 0.4f), inactiveBorderColor = Color.Transparent, activeBorderColor = Color.Transparent),
                         icon = { SmallIcon(MediTrackIcons.Close, if (!taken) Color.White else TextSecondary) },
                     ) { Text("Missed") }
                 }
+                if (!taken) {
+                    Text("Missed doses are saved without an actual time.", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                }
             }
             FormField("Context / Campus Routine Note (optional)", form.note, { form.updateNote(it) }, "e.g., Taken with breakfast before 9 AM lecture in Hall B", multiline = true)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { form.reset(); savedMessage = null }) {
+                    SmallIcon(MediTrackIcons.Reset, TextSecondary)
+                    Text("Reset", color = TextSecondary)
+                }
                 Button(
                     onClick = {
-                        val record = form.submit(if (taken) DoseStatus.TAKEN else DoseStatus.MISSED)
+                        val record = form.submit()
                         if (record != null) {
                             onAddRecord(record)
                             savedMessage = "${record.name} added to today's records."
@@ -229,27 +237,28 @@ private fun MedicationForm(
 private fun TimeField(
     label: String, value: String?, onTimeSelected: (String) -> Unit,
     modifier: Modifier = Modifier, error: String? = null,
+    enabled: Boolean = true, disabledText: String = "--",
 ) {
     var showPicker by rememberSaveable { mutableStateOf(false) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
         Row(
-            Modifier.fillMaxWidth().background(Color.White)
-                .clickable(onClickLabel = "Choose $label") { showPicker = true }
+            Modifier.fillMaxWidth().background(if (enabled) Color.White else TrackBackground.copy(alpha = 0.4f))
+                .clickable(enabled = enabled, onClickLabel = "Choose $label") { showPicker = true }
                 .padding(16.dp)
-                .semantics { contentDescription = "$label: ${value ?: "not set"}" },
+                .semantics { contentDescription = "$label: ${if (enabled) value ?: "not set" else disabledText}" },
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             SmallIcon(MediTrackIcons.Clock, TextSecondary)
             Text(
-                value ?: "Select",
+                if (!enabled) disabledText else value ?: "Select",
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (value != null) TextPrimary else TextSecondary.copy(alpha = 0.65f),
+                color = if (enabled && value != null) TextPrimary else TextSecondary.copy(alpha = 0.65f),
             )
         }
         if (error != null) Text(error, style = MaterialTheme.typography.bodySmall, color = MissedRed)
     }
-    if (showPicker) {
+    if (showPicker && enabled) {
         MediTimePickerDialog(
             title = label, initialTime = value,
             onDismiss = { showPicker = false },
@@ -309,7 +318,7 @@ private fun LoggedRecords(records: List<MedicationRecord>, showEmptyView: Boolea
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Today's Logged Records", modifier = Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium)
-            Text(if (showEmptyView) "0 Records" else "${records.size} Records",  modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+            Text(if (showEmptyView) "0 Records" else "${records.size} Records", modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
             TextButton(onClick = onToggleEmpty, contentPadding = PaddingValues(horizontal = 4.dp)) {
                 SmallIcon(MediTrackIcons.Eye, Teal)
                 Spacer(Modifier.width(4.dp))
@@ -345,7 +354,7 @@ private fun RecordCard(record: MedicationRecord) {
                 Text("Sched: ${record.scheduledTime}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                 Text("Actual: ${record.actualTime ?: "--"}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = statusColor)
             }
-            Text("\"${record.note}\"", modifier = Modifier.fillMaxWidth().background(PanelBackground).padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+            if (record.note.isNotBlank()) Text("\"${record.note}\"", modifier = Modifier.fillMaxWidth().background(PanelBackground).padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
         }
     }
 }

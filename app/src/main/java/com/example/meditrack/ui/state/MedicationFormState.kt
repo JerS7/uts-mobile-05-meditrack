@@ -18,14 +18,22 @@ class MedicationFormState(
     scheduledTime: String? = null,
     actualTime: String? = null,
     note: String = "",
+    status: DoseStatus = DoseStatus.TAKEN,
     showErrors: Boolean = false,
 ) {
     var name by mutableStateOf(name)
         private set
     var scheduledTime by mutableStateOf(scheduledTime)
     var actualTime by mutableStateOf(actualTime)
+        private set
     var note by mutableStateOf(note)
         private set
+    var status by mutableStateOf(status)
+        private set
+
+    /** A missed dose has no actual time, so the field is locked while Missed is selected. */
+    val isActualTimeEnabled: Boolean
+        get() = status == DoseStatus.TAKEN
 
     // Errors only appear after the first submit attempt, not while the user is still typing.
     var showErrors by mutableStateOf(showErrors)
@@ -39,6 +47,25 @@ class MedicationFormState(
         note = value.take(MAX_NOTE_LENGTH)
     }
 
+    fun updateActualTime(value: String) {
+        if (isActualTimeEnabled) actualTime = value
+    }
+
+    fun selectStatus(value: DoseStatus) {
+        status = value
+        if (value == DoseStatus.MISSED) actualTime = null
+    }
+
+    /** Back to a clean form: empty fields, Taken selected, no error messages. */
+    fun reset() {
+        name = ""
+        scheduledTime = null
+        actualTime = null
+        note = ""
+        status = DoseStatus.TAKEN
+        showErrors = false
+    }
+
     val nameError: String?
         get() = if (name.isBlank()) "Medication name is required" else null
 
@@ -46,34 +73,40 @@ class MedicationFormState(
         get() = if (scheduledTime == null) "Choose a scheduled time" else null
 
     val actualTimeError: String?
-        get() = if (actualTime == null) "Choose the time you took it" else null
+        get() = if (isActualTimeEnabled && actualTime == null) "Choose the time you took it" else null
 
     val isValid: Boolean
         get() = nameError == null && scheduledTimeError == null && actualTimeError == null
 
-    /** Returns a new record when every required field is filled, otherwise turns on error messages. */
-    fun submit(status: DoseStatus): MedicationRecord? {
+    /**
+     * Returns a new record when every required field is filled and clears the form for the next entry.
+     * When something is missing, the form keeps its values and turns on error messages.
+     */
+    fun submit(): MedicationRecord? {
         showErrors = true
         if (!isValid) return null
-        return MedicationRecord(
+        val record = MedicationRecord(
             name = name.trim(),
             scheduledTime = scheduledTime!!,
-            actualTime = actualTime,
+            actualTime = if (status == DoseStatus.TAKEN) actualTime else null,
             note = note.trim(),
             status = status,
         )
+        reset()
+        return record
     }
 
     companion object {
         val Saver = listSaver<MedicationFormState, Any?>(
-            save = { listOf(it.name, it.scheduledTime, it.actualTime, it.note, it.showErrors) },
+            save = { listOf(it.name, it.scheduledTime, it.actualTime, it.note, it.status.name, it.showErrors) },
             restore = {
                 MedicationFormState(
                     name = it[0] as String,
                     scheduledTime = it[1] as String?,
                     actualTime = it[2] as String?,
                     note = it[3] as String,
-                    showErrors = it[4] as Boolean,
+                    status = DoseStatus.valueOf(it[4] as String),
+                    showErrors = it[5] as Boolean,
                 )
             },
         )
