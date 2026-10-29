@@ -9,11 +9,14 @@ import com.example.meditrack.data.toEntity
 import com.example.meditrack.model.MedicationRecord
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
 class MedicationViewModel(application: Application) : AndroidViewModel(application) {
     private val catalog = MedicineCatalogDatabase.open(application)
     private val dao = MedicationDatabase.getInstance(application).medicationDao()
-    val records = dao.observeRecords().map { rows -> rows.map { it.toRecord() } }
+    val records = dao.observeRecords()
+        .onStart { dao.ensureDemoRecords() }
+        .map { rows -> rows.map { it.toRecord() } }
 
     suspend fun searchMedicines(query: String): List<String> = catalog.suggestions(query)
 

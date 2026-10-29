@@ -31,6 +31,23 @@ interface MedicationDao {
 
     @Insert
     suspend fun insert(record: MedicationEntity)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM medication_records WHERE id = :id)")
+    suspend fun contains(id: String): Boolean
+
+    @Query("UPDATE medication_records SET name = :newName WHERE id = :id AND name = :oldName")
+    suspend fun renameDemoRecord(id: String, oldName: String, newName: String)
+
+    /** Fixed IDs and a transaction prevent duplicates on relaunch or concurrent loading. */
+    @Transaction
+    suspend fun ensureDemoRecords() {
+        demoMedicationRecords.forEach { record ->
+            if (!contains(record.id)) insert(record.toEntity())
+            else legacyDemoNames[record.id]?.let { oldName ->
+                renameDemoRecord(record.id, oldName, record.name)
+            }
+        }
+    }
 }
 
 @Database(entities = [MedicationEntity::class], version = 1, exportSchema = true)

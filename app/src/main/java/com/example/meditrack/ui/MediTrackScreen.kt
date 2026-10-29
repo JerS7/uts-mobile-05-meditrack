@@ -3,11 +3,11 @@ package com.example.meditrack.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import com.example.meditrack.model.DoseStatus
 import com.example.meditrack.model.MedicationRecord
 import com.example.meditrack.ui.state.MedicationFormState
@@ -50,17 +51,26 @@ fun MediTrackScreen(
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.TopCenter) {
-            Column(
-                modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth()
-                    .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 24.dp),
+            LazyColumn(
+                modifier = Modifier.widthIn(max = 600.dp).fillMaxSize().testTag("medication-list"),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
-                DashboardHeader()
-                SummaryGrid(total, taken, missed, adherence)
-                RegimenProgress(total, taken, adherence)
-                MedicationForm(onAddRecord = onAddRecord, searchMedicines = searchMedicines, remindersContent = remindersContent)
-                LoggedRecords(records)
-                AcademicFooter()
+                item(key = "header") { DashboardHeader() }
+                item(key = "summary") { SummaryGrid(total, taken, missed, adherence) }
+                item(key = "progress") { RegimenProgress(total, taken, adherence) }
+                item(key = "form") {
+                    MedicationForm(onAddRecord = onAddRecord, searchMedicines = searchMedicines, remindersContent = remindersContent)
+                }
+                item(key = "records-header") { LoggedRecordsHeader(records.size) }
+                if (records.isEmpty()) {
+                    item(key = "empty-records") { EmptyRecords() }
+                } else {
+                    items(records, key = { "record-${it.id}" }, contentType = { "medication-record" }) { record ->
+                        RecordCard(record)
+                    }
+                }
+                item(key = "footer") { AcademicFooter() }
             }
         }
     }
@@ -386,18 +396,11 @@ private fun FormField(
 }
 
 @Composable
-private fun LoggedRecords(records: List<MedicationRecord>) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun LoggedRecordsHeader(count: Int) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Logged Records", modifier = Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium)
-            Text("${records.size} Records", modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+            Text("$count Records", modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
         }
-        if (records.isEmpty()) {
-            EmptyRecords()
-        } else {
-            records.forEach { RecordCard(it) }
-        }
-    }
 }
 
 @Composable

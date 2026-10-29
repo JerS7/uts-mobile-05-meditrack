@@ -3,6 +3,7 @@ package com.example.meditrack
 import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.meditrack.data.MedicationDatabase
+import com.example.meditrack.data.demoMedicationRecords
 import com.example.meditrack.data.toEntity
 import com.example.meditrack.model.DoseStatus
 import com.example.meditrack.model.MedicationRecord
@@ -12,6 +13,27 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class MedicationDatabaseTest {
+    @Test
+    fun demoRecordsAreAddedOnceWithoutReplacingExistingRecords() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val database = Room.inMemoryDatabaseBuilder(context, MedicationDatabase::class.java).build()
+        val existing = MedicationRecord("Existing record", "08:00 AM", null, "Keep this", DoseStatus.MISSED)
+        try {
+            database.medicationDao().insert(existing.toEntity())
+            database.medicationDao().insert(demoMedicationRecords.first().copy(name = "Obat Simulasi A").toEntity())
+            database.medicationDao().ensureDemoRecords()
+            database.medicationDao().ensureDemoRecords()
+            val records = database.medicationDao().observeRecords().first().map { it.toRecord() }
+            assertEquals(4, records.size)
+            assertEquals(existing, records.first())
+            val demo = records.filter { it.id.startsWith("uts-demo-") }
+            assertEquals(3, demo.size)
+            assertEquals(demoMedicationRecords, demo)
+            assertEquals(2, demo.count { it.status == DoseStatus.TAKEN })
+            assertEquals(1, demo.count { it.status == DoseStatus.MISSED })
+        } finally { database.close() }
+    }
+
     @Test
     fun recordsSurviveClosingAndReopeningDatabase() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

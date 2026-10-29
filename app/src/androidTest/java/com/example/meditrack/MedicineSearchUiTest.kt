@@ -22,6 +22,7 @@ class MedicineSearchUiTest {
             compose.setContent {
                 MediTrackTheme { MediTrackScreen(searchMedicines = catalog::suggestions) }
             }
+            compose.onNodeWithTag("medication-list").performScrollToKey("form")
             val field = compose.onNodeWithContentDescription("Medication or Supplement Name")
             field.performScrollTo().performTextInput("parasetamol")
             compose.waitUntil(5000) {
