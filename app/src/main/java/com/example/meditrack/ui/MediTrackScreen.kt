@@ -23,20 +23,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.meditrack.model.DoseStatus
 import com.example.meditrack.model.MedicationRecord
-import com.example.meditrack.ui.state.MediTrackState
 import com.example.meditrack.ui.state.MedicationFormState
 import com.example.meditrack.ui.state.formatTime12h
+import androidx.compose.ui.focus.onFocusChanged
+import kotlinx.coroutines.delay
 import com.example.meditrack.ui.state.parseTime12h
 import com.example.meditrack.ui.state.rememberMedicationFormState
-import com.example.meditrack.ui.state.rememberMediTrackState
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import com.example.meditrack.ui.theme.*
 
 @Composable
 fun MediTrackScreen(
     modifier: Modifier = Modifier,
-    state: MediTrackState = rememberMediTrackState(),
+    records: List<MedicationRecord> = emptyList(),
+    onAddRecord: suspend (MedicationRecord) -> Unit = {},
+    searchMedicines: suspend (String) -> List<String> = { emptyList() },
 ) {
-    val records = state.records
     val total = records.size
     val taken = records.count { it.status == DoseStatus.TAKEN }
     val missed = records.count { it.status == DoseStatus.MISSED }
@@ -54,7 +57,7 @@ fun MediTrackScreen(
                 DashboardHeader()
                 SummaryGrid(total, taken, missed, adherence)
                 RegimenProgress(total, taken, adherence)
-                MedicationForm(onAddRecord = state::addRecord)
+                MedicationForm(onAddRecord = onAddRecord, searchMedicines = searchMedicines)
                 LoggedRecords(records)
                 AcademicFooter()
             }
@@ -138,7 +141,7 @@ private fun RegimenProgress(total: Int, taken: Int, adherence: Float) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f)) {
-                    Text("Today's Regimen Progress", style = MaterialTheme.typography.titleSmall)
+                    Text("Regimen Progress", style = MaterialTheme.typography.titleSmall)
                     Text("$taken of $total logged doses taken", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                 }
                 Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
@@ -159,21 +162,70 @@ private fun RegimenProgress(total: Int, taken: Int, adherence: Float) {
 
 @Composable
 private fun MedicationForm(
-    onAddRecord: (MedicationRecord) -> Unit,
+    onAddRecord: suspend (MedicationRecord) -> Unit,
+    searchMedicines: suspend (String) -> List<String>,
     form: MedicationFormState = rememberMedicationFormState(),
 ) {
     val taken = form.status == DoseStatus.TAKEN
     var savedMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var showNameSuggestions by rememberSaveable { mutableStateOf(false) }
+    var nameFocused by remember { mutableStateOf(false) }
+    var suggestions by remember { mutableStateOf<List<String>>(emptyList()) }
+    var searching by remember { mutableStateOf(false) }
+    var searchFailed by remember { mutableStateOf(false) }
+    LaunchedEffect(form.name, nameFocused, showNameSuggestions) {
+        suggestions = emptyList()
+        searchFailed = false
+        searching = false
+        if (nameFocused && showNameSuggestions && form.name.trim().length >= 2) {
+            searching = true
+            try {
+                delay(200)
+                suggestions = searchMedicines(form.name)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                searchFailed = true
+            } finally {
+                searching = false
+            }
+        }
+    }
+    var saving by remember { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    if (saving) {
+        AlertDialog(onDismissRequest = {}, confirmButton = {}, text = { Text("Saving record…") })
+    }
     Surface(shape = RoundedCornerShape(32.dp), color = PanelBackground) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 SmallIcon(MediTrackIcons.Add, Teal)
                 Text("Log Medication Record", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
             }
-            FormField(
-                "Medication or Supplement Name", form.name, { form.updateName(it); savedMessage = null }, "e.g., Multivitamin",
-                icon = MediTrackIcons.Pill, error = form.nameError.takeIf { form.showErrors },
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FormField(
+                    "Medication or Supplement Name", form.name,
+                    { form.updateName(it); showNameSuggestions = true; savedMessage = null },
+                    "e.g., Paracetamol", icon = MediTrackIcons.Pill,
+                    error = form.nameError.takeIf { form.showErrors },
+                    onFocusChanged = { nameFocused = it; if (it) showNameSuggestions = true },
+                )
+                if (showNameSuggestions && nameFocused && form.name.trim().length >= 2) {
+                    suggestions.forEach { suggestion ->
+                        Text(
+                            suggestion,
+                            modifier = Modifier.fillMaxWidth().background(Color.White)
+                                .clickable { form.updateName(suggestion); showNameSuggestions = false }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                    if (searching) Text("Searching names…", style = MaterialTheme.typography.bodySmall)
+                    else if (searchFailed) Text("Name search unavailable. You can still enter a name.", style = MaterialTheme.typography.bodySmall)
+                    else if (suggestions.isEmpty()) Text("No matching names. You can still enter your own.", style = MaterialTheme.typography.bodySmall)
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TimeField(
                     "Scheduled Time", form.scheduledTime, { form.scheduledTime = it }, Modifier.weight(1f),
@@ -207,18 +259,34 @@ private fun MedicationForm(
             }
             FormField("Context / Campus Routine Note (optional)", form.note, { form.updateNote(it) }, "e.g., Taken with breakfast before 9 AM lecture in Hall B", multiline = true)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { form.reset(); savedMessage = null }) {
+                TextButton(onClick = { form.reset(); showNameSuggestions = false; savedMessage = null }) {
                     SmallIcon(MediTrackIcons.Reset, TextSecondary)
                     Text("Reset", color = TextSecondary)
                 }
                 Button(
                     onClick = {
-                        val record = form.submit()
+                        val record = form.submit(resetAfterSubmit = false)
                         if (record != null) {
-                            onAddRecord(record)
-                            savedMessage = "${record.name} added to today's records."
+                            saving = true
+                            saveError = false
+                            savedMessage = null
+                            scope.launch {
+                                try {
+                                    onAddRecord(record)
+                                    form.reset()
+                                    showNameSuggestions = false
+                                    savedMessage = "${record.name} saved on this device."
+                                } catch (cancelled: CancellationException) {
+                                    throw cancelled
+                                } catch (_: Exception) {
+                                    saveError = true
+                                } finally {
+                                    saving = false
+                                }
+                            }
                         }
                     },
+                    enabled = !saving,
                     colors = ButtonDefaults.buttonColors(containerColor = Teal, contentColor = Color.White),
                 ) {
                     SmallIcon(MediTrackIcons.Add, Color.White)
@@ -228,6 +296,7 @@ private fun MedicationForm(
             savedMessage?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = TakenGreen)
             }
+            if (saveError) Text("Unable to save. Your input is still here. Please try again.", color = MissedRed)
         }
     }
 }
@@ -289,6 +358,7 @@ private fun FormField(
     label: String, value: String, onValueChange: (String) -> Unit, placeholder: String,
     modifier: Modifier = Modifier, icon: ImageVector? = null, multiline: Boolean = false,
     error: String? = null,
+    onFocusChanged: (Boolean) -> Unit = {},
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
@@ -296,7 +366,7 @@ private fun FormField(
             value = value, onValueChange = onValueChange,
             singleLine = !multiline, minLines = if (multiline) 2 else 1,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextPrimary),
-            modifier = Modifier.fillMaxWidth().background(Color.White).padding(16.dp)
+            modifier = Modifier.onFocusChanged { onFocusChanged(it.isFocused) }.fillMaxWidth().background(Color.White).padding(16.dp)
                 .semantics { contentDescription = label },
             decorationBox = { innerTextField ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -316,7 +386,7 @@ private fun FormField(
 private fun LoggedRecords(records: List<MedicationRecord>) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Today's Logged Records", modifier = Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium)
+            Text("Logged Records", modifier = Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium)
             Text("${records.size} Records", modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
         }
         if (records.isEmpty()) {

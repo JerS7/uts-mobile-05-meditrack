@@ -82,7 +82,7 @@ class MedicationFormState(
      * Returns a new record when every required field is filled and clears the form for the next entry.
      * When something is missing, the form keeps its values and turns on error messages.
      */
-    fun submit(): MedicationRecord? {
+    fun submit(resetAfterSubmit: Boolean = true): MedicationRecord? {
         showErrors = true
         if (!isValid) return null
         val record = MedicationRecord(
@@ -92,7 +92,7 @@ class MedicationFormState(
             note = note.trim(),
             status = status,
         )
-        reset()
+        if (resetAfterSubmit) reset()
         return record
     }
 
