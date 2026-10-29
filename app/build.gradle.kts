@@ -39,6 +39,7 @@ android {
 dependencies {
     implementation("androidx.room:room-runtime:2.8.5")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
     ksp("androidx.room:room-compiler:2.8.5")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

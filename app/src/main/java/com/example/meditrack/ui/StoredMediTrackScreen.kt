@@ -34,6 +34,10 @@ fun StoredMediTrackScreen(model: MedicationViewModel = viewModel()) {
             } else CircularProgressIndicator()
         }
     } else {
-        MediTrackScreen(records = records!!, onAddRecord = model::save, searchMedicines = model::searchMedicines)
+        MediTrackScreen(records = records!!, onAddRecord = model::save, searchMedicines = model::searchMedicines,
+            remindersContent = { form ->
+                ReminderPanel(medicineName = form.name, scheduledTime = form.scheduledTime,
+                    onEdit = { name, time -> form.updateName(name); form.scheduledTime = time })
+            })
     }
 }

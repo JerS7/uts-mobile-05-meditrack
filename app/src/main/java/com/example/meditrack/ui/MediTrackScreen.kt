@@ -39,6 +39,7 @@ fun MediTrackScreen(
     records: List<MedicationRecord> = emptyList(),
     onAddRecord: suspend (MedicationRecord) -> Unit = {},
     searchMedicines: suspend (String) -> List<String> = { emptyList() },
+    remindersContent: @Composable (MedicationFormState) -> Unit = {},
 ) {
     val total = records.size
     val taken = records.count { it.status == DoseStatus.TAKEN }
@@ -57,7 +58,7 @@ fun MediTrackScreen(
                 DashboardHeader()
                 SummaryGrid(total, taken, missed, adherence)
                 RegimenProgress(total, taken, adherence)
-                MedicationForm(onAddRecord = onAddRecord, searchMedicines = searchMedicines)
+                MedicationForm(onAddRecord = onAddRecord, searchMedicines = searchMedicines, remindersContent = remindersContent)
                 LoggedRecords(records)
                 AcademicFooter()
             }
@@ -164,6 +165,7 @@ private fun RegimenProgress(total: Int, taken: Int, adherence: Float) {
 private fun MedicationForm(
     onAddRecord: suspend (MedicationRecord) -> Unit,
     searchMedicines: suspend (String) -> List<String>,
+    remindersContent: @Composable (MedicationFormState) -> Unit,
     form: MedicationFormState = rememberMedicationFormState(),
 ) {
     val taken = form.status == DoseStatus.TAKEN
@@ -237,6 +239,7 @@ private fun MedicationForm(
                     enabled = form.isActualTimeEnabled, disabledText = "Not taken",
                 )
             }
+            remindersContent(form)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Dose Status", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
