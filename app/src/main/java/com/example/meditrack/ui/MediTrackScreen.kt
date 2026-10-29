@@ -31,13 +31,16 @@ import com.example.meditrack.ui.state.rememberMedicationFormState
 import com.example.meditrack.ui.state.rememberMediTrackState
 import com.example.meditrack.ui.theme.*
 
-/** Stage two: the form saves records into session state; summary is still a wireframe fixture. */
 @Composable
 fun MediTrackScreen(
     modifier: Modifier = Modifier,
-    state: MediTrackState = rememberMediTrackState(initialRecords = sampleMedicationRecords),
+    state: MediTrackState = rememberMediTrackState(),
 ) {
-    var showEmptyView by rememberSaveable { mutableStateOf(false) }
+    val records = state.records
+    val total = records.size
+    val taken = records.count { it.status == DoseStatus.TAKEN }
+    val missed = records.count { it.status == DoseStatus.MISSED }
+    val adherence = if (total == 0) 0f else taken.toFloat() / total
     Scaffold(
         modifier = modifier.fillMaxSize().imePadding(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -49,14 +52,10 @@ fun MediTrackScreen(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
                 DashboardHeader()
-                SummaryGrid()
-                RegimenProgress()
+                SummaryGrid(total, taken, missed, adherence)
+                RegimenProgress(total, taken, adherence)
                 MedicationForm(onAddRecord = state::addRecord)
-                LoggedRecords(
-                    records = state.records,
-                    showEmptyView = showEmptyView,
-                    onToggleEmpty = { showEmptyView = !showEmptyView },
-                )
+                LoggedRecords(records)
                 AcademicFooter()
             }
         }
@@ -91,15 +90,15 @@ private fun DashboardHeader() {
 }
 
 @Composable
-private fun SummaryGrid() {
+private fun SummaryGrid(total: Int, taken: Int, missed: Int, adherence: Float) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard("Scheduled", "4", "doses", 1f, MediTrackIcons.Calendar, Teal, Modifier.weight(1f))
-            SummaryCard("Taken", "3", "completed", 0.75f, MediTrackIcons.Check, TakenGreen, Modifier.weight(1f))
+            SummaryCard("Scheduled", "$total", "logged doses", if (total == 0) 0f else 1f, MediTrackIcons.Calendar, Teal, Modifier.weight(1f))
+            SummaryCard("Taken", "$taken", "completed", adherence, MediTrackIcons.Check, TakenGreen, Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard("Missed", "1", "dose", 0.25f, MediTrackIcons.Close, MissedRed, Modifier.weight(1f))
-            SummaryCard("Adherence", "75%", "daily score", 0.75f, MediTrackIcons.Trend, Color.White, Modifier.weight(1f), highlighted = true)
+            SummaryCard("Missed", "$missed", "doses", if (total == 0) 0f else missed.toFloat() / total, MediTrackIcons.Close, MissedRed, Modifier.weight(1f))
+            SummaryCard("Adherence", "${(adherence * 100).toInt()}%", "of logged doses", adherence, MediTrackIcons.Trend, Color.White, Modifier.weight(1f), highlighted = true)
         }
     }
 }
@@ -134,17 +133,17 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun RegimenProgress() {
+private fun RegimenProgress(total: Int, taken: Int, adherence: Float) {
     Surface(shape = RoundedCornerShape(32.dp), color = Color.White) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f)) {
                     Text("Today's Regimen Progress", style = MaterialTheme.typography.titleSmall)
-                    Text("3 of 4 planned items completed", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                    Text("$taken of $total logged doses taken", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                 }
                 Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(progress = { 0.75f }, modifier = Modifier.fillMaxSize(), color = Teal, trackColor = TrackBackground, strokeWidth = 4.dp)
-                    Text("75%", color = Teal, style = MaterialTheme.typography.labelMedium)
+                    CircularProgressIndicator(progress = { adherence }, modifier = Modifier.fillMaxSize(), color = Teal, trackColor = TrackBackground, strokeWidth = 4.dp)
+                    Text("${(adherence * 100).toInt()}%", color = Teal, style = MaterialTheme.typography.labelMedium)
                 }
             }
             Row(
@@ -152,7 +151,7 @@ private fun RegimenProgress() {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SmallIcon(MediTrackIcons.School, Teal)
-                Text("Midterms Check-in: Excellent consistency today! Keep water nearby during intense library study sessions.", style = MaterialTheme.typography.bodyMedium, color = TealInk)
+                Text(if (total == 0) "Add a medication record to see your progress." else "Progress is based on your logged doses.", style = MaterialTheme.typography.bodyMedium, color = TealInk)
             }
         }
     }
@@ -314,18 +313,13 @@ private fun FormField(
 }
 
 @Composable
-private fun LoggedRecords(records: List<MedicationRecord>, showEmptyView: Boolean, onToggleEmpty: () -> Unit) {
+private fun LoggedRecords(records: List<MedicationRecord>) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Today's Logged Records", modifier = Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium)
-            Text(if (showEmptyView) "0 Records" else "${records.size} Records", modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-            TextButton(onClick = onToggleEmpty, contentPadding = PaddingValues(horizontal = 4.dp)) {
-                SmallIcon(MediTrackIcons.Eye, Teal)
-                Spacer(Modifier.width(4.dp))
-                Text(if (showEmptyView) "Show\nRecords" else "Toggle\nEmpty View", style = MaterialTheme.typography.labelSmall)
-            }
+            Text("${records.size} Records", modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
         }
-        if (showEmptyView || records.isEmpty()) {
+        if (records.isEmpty()) {
             EmptyRecords()
         } else {
             records.forEach { RecordCard(it) }
