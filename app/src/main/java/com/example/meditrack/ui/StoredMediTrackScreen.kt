@@ -28,8 +28,8 @@ fun StoredMediTrackScreen(model: MedicationViewModel = viewModel()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             if (loadFailed) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Unable to load saved records.")
-                    TextButton(onClick = { attempt++ }) { Text("Retry") }
+                    Text("Gagal memuat catatan yang tersimpan.")
+                    TextButton(onClick = { attempt++ }) { Text("Coba Lagi") }
                 }
             } else CircularProgressIndicator()
         }

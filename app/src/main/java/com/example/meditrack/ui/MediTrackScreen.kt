@@ -14,25 +14,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.testTag
 import com.example.meditrack.model.DoseStatus
 import com.example.meditrack.model.MedicationRecord
 import com.example.meditrack.ui.state.MedicationFormState
 import com.example.meditrack.ui.state.formatTime12h
-import androidx.compose.ui.focus.onFocusChanged
-import kotlinx.coroutines.delay
 import com.example.meditrack.ui.state.parseTime12h
 import com.example.meditrack.ui.state.rememberMedicationFormState
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
 import com.example.meditrack.ui.theme.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun MediTrackScreen(
@@ -84,21 +84,21 @@ private fun DashboardHeader() {
                 Icon(MediTrackIcons.Pill, contentDescription = "MediTrack", tint = Color.White, modifier = Modifier.size(21.dp))
             }
             Box(Modifier.size(32.dp).background(Teal, CircleShape), contentAlignment = Alignment.Center) {
-                Icon(MediTrackIcons.Person, contentDescription = "Profile illustration", tint = Color.White, modifier = Modifier.size(18.dp))
+                Icon(MediTrackIcons.Person, contentDescription = "Ilustrasi Profil", tint = Color.White, modifier = Modifier.size(18.dp))
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             SmallIcon(MediTrackIcons.Pulse, Teal)
-            Text("CAMPUS ROUTINE WELLNESS", style = MaterialTheme.typography.labelMedium, color = Teal)
+            Text("KESEHATAN RUTINITAS KAMPUS", style = MaterialTheme.typography.labelMedium, color = Teal)
         }
-        Text("Personal Medication Adherence Logger", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
-        Text("Keep your daily course load and health regimen seamlessly aligned through stress-free tracking.", color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
+        Text("Pencatat Kepatuhan Minum Obat Pribadi", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+        Text("Jaga agar beban kuliah harian dan resep kesehatan Anda selaras tanpa stres.", color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
         Row(
             Modifier.fillMaxWidth().background(TrackBackground.copy(alpha = 0.45f)).padding(10.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             SmallIcon(MediTrackIcons.Info, Teal)
-            Text("Campus Health Project: Educational tracking tool only. No clinical or dosage advice provided.", style = MaterialTheme.typography.bodySmall)
+            Text("(! Hanyalah  test, jangan gunakan serius)", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -107,12 +107,12 @@ private fun DashboardHeader() {
 private fun SummaryGrid(total: Int, taken: Int, missed: Int, adherence: Float) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard("Scheduled", "$total", "logged doses", if (total == 0) 0f else 1f, MediTrackIcons.Calendar, Teal, Modifier.weight(1f))
-            SummaryCard("Taken", "$taken", "completed", adherence, MediTrackIcons.Check, TakenGreen, Modifier.weight(1f))
+            SummaryCard("Terdaftar", "$total", "dosis dicatat", if (total == 0) 0f else 1f, MediTrackIcons.Calendar, Teal, Modifier.weight(1f))
+            SummaryCard("Diminum", "$taken", "selesai", adherence, MediTrackIcons.Check, TakenGreen, Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard("Missed", "$missed", "doses", if (total == 0) 0f else missed.toFloat() / total, MediTrackIcons.Close, MissedRed, Modifier.weight(1f))
-            SummaryCard("Adherence", "${(adherence * 100).toInt()}%", "of logged doses", adherence, MediTrackIcons.Trend, Color.White, Modifier.weight(1f), highlighted = true)
+            SummaryCard("Terlewat", "$missed", "dosis", if (total == 0) 0f else missed.toFloat() / total, MediTrackIcons.Close, MissedRed, Modifier.weight(1f))
+            SummaryCard("Kepatuhan", "${(adherence * 100).toInt()}%", "dari dosis dicatat", adherence, MediTrackIcons.Trend, Color.White, Modifier.weight(1f), highlighted = true)
         }
     }
 }
@@ -135,7 +135,7 @@ private fun SummaryCard(
             ) { SmallIcon(icon, accent) }
         }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(value, style = MaterialTheme.typography.headlineMedium, color = if (title == "Scheduled") TextPrimary else accent)
+            Text(value, style = MaterialTheme.typography.headlineMedium, color = if (title == "Terdaftar") TextPrimary else accent)
             Text(unit, modifier = Modifier.weight(1f).padding(bottom = 3.dp), color = foreground, style = MaterialTheme.typography.bodySmall)
         }
         LinearProgressIndicator(
@@ -152,8 +152,8 @@ private fun RegimenProgress(total: Int, taken: Int, adherence: Float) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f)) {
-                    Text("Regimen Progress", style = MaterialTheme.typography.titleSmall)
-                    Text("$taken of $total logged doses taken", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                    Text("Progres Konsumsi Obat", style = MaterialTheme.typography.titleSmall)
+                    Text("$taken dari $total dosis terdaftar telah diminum", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                 }
                 Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(progress = { adherence }, modifier = Modifier.fillMaxSize(), color = Teal, trackColor = TrackBackground, strokeWidth = 4.dp)
@@ -165,7 +165,7 @@ private fun RegimenProgress(total: Int, taken: Int, adherence: Float) {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SmallIcon(MediTrackIcons.School, Teal)
-                Text(if (total == 0) "Add a medication record to see your progress." else "Progress is based on your logged doses.", style = MaterialTheme.typography.bodyMedium, color = TealInk)
+                Text(if (total == 0) "Tambahkan catatan obat untuk melihat progres Anda." else "Progres didasarkan pada dosis yang Anda catat.", style = MaterialTheme.typography.bodyMedium, color = TealInk)
             }
         }
     }
@@ -207,19 +207,19 @@ private fun MedicationForm(
     var saveError by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     if (saving) {
-        AlertDialog(onDismissRequest = {}, confirmButton = {}, text = { Text("Saving record…") })
+        AlertDialog(onDismissRequest = {}, confirmButton = {}, text = { Text("Menyimpan catatan…") })
     }
     Surface(shape = RoundedCornerShape(32.dp), color = PanelBackground) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 SmallIcon(MediTrackIcons.Add, Teal)
-                Text("Log Medication Record", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+                Text("Catat Konsumsi Obat", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 FormField(
-                    "Medication or Supplement Name", form.name,
+                    "Nama Obat atau Suplemen", form.name,
                     { form.updateName(it); showNameSuggestions = true; savedMessage = null },
-                    "e.g., Paracetamol", icon = MediTrackIcons.Pill,
+                    "contoh: Parasetamol", icon = MediTrackIcons.Pill,
                     error = form.nameError.takeIf { form.showErrors },
                     onFocusChanged = { nameFocused = it; if (it) showNameSuggestions = true },
                 )
@@ -233,44 +233,44 @@ private fun MedicationForm(
                             style = MaterialTheme.typography.bodyLarge,
                         )
                     }
-                    if (searching) Text("Searching names…", style = MaterialTheme.typography.bodySmall)
-                    else if (searchFailed) Text("Name search unavailable. You can still enter a name.", style = MaterialTheme.typography.bodySmall)
-                    else if (suggestions.isEmpty()) Text("No matching names. You can still enter your own.", style = MaterialTheme.typography.bodySmall)
+                    if (searching) Text("Mencari nama obat…", style = MaterialTheme.typography.bodySmall)
+                    else if (searchFailed) Text("Pencarian nama tidak tersedia. Anda tetap dapat memasukkan nama secara manual.", style = MaterialTheme.typography.bodySmall)
+                    else if (suggestions.isEmpty()) Text("Tidak ada nama yang cocok. Anda tetap dapat memasukkan nama sendiri.", style = MaterialTheme.typography.bodySmall)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TimeField(
-                    "Scheduled Time", form.scheduledTime, { form.scheduledTime = it }, Modifier.weight(1f),
+                    "Waktu Jadwal", form.scheduledTime, { form.scheduledTime = it }, Modifier.weight(1f),
                     error = form.scheduledTimeError.takeIf { form.showErrors },
                 )
                 TimeField(
-                    "Actual Time", form.actualTime, form::updateActualTime, Modifier.weight(1f),
+                    "Waktu Aktual", form.actualTime, form::updateActualTime, Modifier.weight(1f),
                     error = form.actualTimeError.takeIf { form.showErrors },
-                    enabled = form.isActualTimeEnabled, disabledText = "Not taken",
+                    enabled = form.isActualTimeEnabled, disabledText = "Belum diminum",
                 )
             }
             remindersContent(form)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Dose Status", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                Text("Status Dosis", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     SegmentedButton(
                         selected = taken, onClick = { form.selectStatus(DoseStatus.TAKEN); savedMessage = null },
                         shape = SegmentedButtonDefaults.itemShape(0, 2),
                         colors = SegmentedButtonDefaults.colors(activeContainerColor = Teal, activeContentColor = Color.White, inactiveContainerColor = TrackBackground.copy(alpha = 0.4f), inactiveBorderColor = Color.Transparent, activeBorderColor = Color.Transparent),
                         icon = { SmallIcon(MediTrackIcons.Check, if (taken) Color.White else TextSecondary) },
-                    ) { Text("Taken") }
+                    ) { Text("Diminum") }
                     SegmentedButton(
                         selected = !taken, onClick = { form.selectStatus(DoseStatus.MISSED); savedMessage = null },
                         shape = SegmentedButtonDefaults.itemShape(1, 2),
                         colors = SegmentedButtonDefaults.colors(activeContainerColor = MissedRed, activeContentColor = Color.White, inactiveContainerColor = TrackBackground.copy(alpha = 0.4f), inactiveBorderColor = Color.Transparent, activeBorderColor = Color.Transparent),
                         icon = { SmallIcon(MediTrackIcons.Close, if (!taken) Color.White else TextSecondary) },
-                    ) { Text("Missed") }
+                    ) { Text("Terlewat") }
                 }
                 if (!taken) {
-                    Text("Missed doses are saved without an actual time.", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                    Text("Dosis yang terlewat disimpan tanpa waktu aktual.", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                 }
             }
-            FormField("Context / Campus Routine Note (optional)", form.note, { form.updateNote(it) }, "e.g., Taken with breakfast before 9 AM lecture in Hall B", multiline = true)
+            FormField("Catatan / Rutinitas Kampus (opsional)", form.note, { form.updateNote(it) }, "contoh: Diminum saat sarapan sebelum kuliah jam 9 pagi di Ruang B", multiline = true)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { form.reset(); showNameSuggestions = false; savedMessage = null }) {
                     SmallIcon(MediTrackIcons.Reset, TextSecondary)
@@ -288,7 +288,7 @@ private fun MedicationForm(
                                     onAddRecord(record)
                                     form.reset()
                                     showNameSuggestions = false
-                                    savedMessage = "${record.name} saved on this device."
+                                    savedMessage = "${record.name} berhasil disimpan di perangkat ini."
                                 } catch (cancelled: CancellationException) {
                                     throw cancelled
                                 } catch (_: Exception) {
@@ -303,13 +303,13 @@ private fun MedicationForm(
                     colors = ButtonDefaults.buttonColors(containerColor = Teal, contentColor = Color.White),
                 ) {
                     SmallIcon(MediTrackIcons.Add, Color.White)
-                    Text("Add Record")
+                    Text("Tambah Catatan")
                 }
             }
             savedMessage?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = TakenGreen)
             }
-            if (saveError) Text("Unable to save. Your input is still here. Please try again.", color = MissedRed)
+            if (saveError) Text("Gagal menyimpan. Data input Anda masih ada. Silakan coba lagi.", color = MissedRed)
         }
     }
 }
@@ -325,14 +325,14 @@ private fun TimeField(
         Text(label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
         Row(
             Modifier.fillMaxWidth().background(if (enabled) Color.White else TrackBackground.copy(alpha = 0.4f))
-                .clickable(enabled = enabled, onClickLabel = "Choose $label") { showPicker = true }
+                .clickable(enabled = enabled, onClickLabel = "Pilih $label") { showPicker = true }
                 .padding(16.dp)
-                .semantics { contentDescription = "$label: ${if (enabled) value ?: "not set" else disabledText}" },
+                .semantics { contentDescription = "$label: ${if (enabled) value ?: "belum diatur" else disabledText}" },
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             SmallIcon(MediTrackIcons.Clock, TextSecondary)
             Text(
-                if (!enabled) disabledText else value ?: "Select",
+                if (!enabled) disabledText else value ?: "Pilih",
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (enabled && value != null) TextPrimary else TextSecondary.copy(alpha = 0.65f),
             )
@@ -362,7 +362,7 @@ private fun MediTimePickerDialog(
         confirmButton = {
             TextButton(onClick = { onConfirm(formatTime12h(pickerState.hour, pickerState.minute)) }) { Text("OK", color = Teal) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal", color = TextSecondary) } },
     )
 }
 
@@ -397,10 +397,10 @@ private fun FormField(
 
 @Composable
 private fun LoggedRecordsHeader(count: Int) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Logged Records", modifier = Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium)
-            Text("$count Records", modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-        }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Catatan Riwayat", modifier = Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium)
+        Text("$count Catatan", modifier = Modifier.background(TrackBackground, CircleShape).padding(horizontal = 8.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+    }
 }
 
 @Composable
@@ -417,12 +417,12 @@ private fun RecordCard(record: MedicationRecord) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(if (taken) MediTrackIcons.Check else MediTrackIcons.Close, null, Modifier.size(12.dp), tint = statusColor)
-                    Text(if (taken) "Taken" else "Missed", style = MaterialTheme.typography.labelSmall, color = statusColor)
+                    Text(if (taken) "Diminum" else "Terlewat", style = MaterialTheme.typography.labelSmall, color = statusColor)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Sched: ${record.scheduledTime}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                Text("Actual: ${record.actualTime ?: "--"}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = statusColor)
+                Text("Jadwal: ${record.scheduledTime}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                Text("Aktual: ${record.actualTime ?: "--"}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = statusColor)
             }
             if (record.note.isNotBlank()) Text("\"${record.note}\"", modifier = Modifier.fillMaxWidth().background(PanelBackground).padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
         }
@@ -436,8 +436,8 @@ private fun EmptyRecords() {
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         SmallIcon(MediTrackIcons.Pill, Teal)
-        Text("No records yet", style = MaterialTheme.typography.titleMedium)
-        Text("Your daily medication records will appear here.", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+        Text("Belum ada catatan", style = MaterialTheme.typography.titleMedium)
+        Text("Catatan riwayat obat harian Anda akan muncul di sini.", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
     }
 }
 
@@ -449,14 +449,14 @@ private fun AcademicFooter() {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             SmallIcon(MediTrackIcons.Shield, Teal)
-            Text("MediTrack Academic Project: UTS Sementara untuk kuliah Pemograman Bergerak", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            Text("Proyek Akademik MediTrack: UTS Sementara untuk kuliah Pemrograman Bergerak", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
         }
         Row(
             Modifier.clip(CircleShape).background(PanelBackground).padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             SmallIcon(MediTrackIcons.School, Teal)
-            Text("Not a true app, do not use as a need", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            Text("Bukan aplikasi resmi, jangan gunakan untuk kebutuhan medis", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
         }
     }
 }

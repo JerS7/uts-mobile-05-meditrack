@@ -69,7 +69,7 @@ fun ReminderPanel(
                 scope.launch {
                     try { manager.reschedule() }
                     catch (cancelled: CancellationException) { throw cancelled }
-                    catch (_: Exception) { error = "Unable to schedule reminders. Please reopen this screen to retry." }
+                    catch (_: Exception) { error = "Gagal menjadwalkan pengingat. Silakan buka kembali layar ini untuk mencoba lagi." }
                 }
             }
         }
@@ -89,81 +89,81 @@ fun ReminderPanel(
         scope.launch {
             try { action(); success() }
             catch (cancelled: CancellationException) { throw cancelled }
-            catch (_: Exception) { error = "Unable to update the reminder. Please try again." }
+            catch (_: Exception) { error = "Gagal memperbarui pengingat. Silakan coba lagi." }
             finally { working = false }
         }
     }
-    if (working) AlertDialog(onDismissRequest = {}, confirmButton = {}, text = { Text("Updating reminder…") })
+    if (working) AlertDialog(onDismissRequest = {}, confirmButton = {}, text = { Text("Memperbarui pengingat…") })
 
     Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.large) {
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Daily reminder (optional)", style = MaterialTheme.typography.titleSmall)
-            Text("Uses the medication name and Scheduled Time above. Save a reminder now; use Add Record to log a taken or missed dose.", style = MaterialTheme.typography.bodySmall)
+            Text("Pengingat harian (opsional)", style = MaterialTheme.typography.titleSmall)
+            Text("Menggunakan nama obat dan Waktu Jadwal di atas. Simpan pengingat sekarang; gunakan Tambah Catatan untuk mencatat dosis yang diminum atau terlewat.", style = MaterialTheme.typography.bodySmall)
             if (medicineName.isNotBlank() && time != null) {
-                Text("${medicineName.trim()} • Every day at $scheduledTime", style = MaterialTheme.typography.bodyMedium)
+                Text("${medicineName.trim()} • Setiap hari pukul $scheduledTime", style = MaterialTheme.typography.bodyMedium)
             }
             if (!notificationsAllowed) {
-                Text("Notifications are off. Enable them to receive medication reminders.")
+                Text("Notifikasi mati. Aktifkan untuk menerima pengingat minum obat.")
                 if (Build.VERSION.SDK_INT >= 33) TextButton(onClick = {
-                        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }) { Text("Allow notifications") }
+                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }) { Text("Izinkan notifikasi") }
                 TextButton(onClick = {
                     val intent = if (Build.VERSION.SDK_INT >= 26) Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                         .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                     else Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
                     settings.launch(intent)
-                }) { Text("Notification settings") }
+                }) { Text("Pengaturan notifikasi") }
             }
             if (!exactAllowed) {
-                Text("Without precise alarm access, Android may delay reminders.", style = MaterialTheme.typography.bodySmall)
+                Text("Tanpa akses alarm presisi, Android dapat menunda pengingat.", style = MaterialTheme.typography.bodySmall)
                 if (Build.VERSION.SDK_INT >= 31) TextButton(onClick = {
                     settings.launch(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}")))
-                }) { Text("Allow precise reminders") }
+                }) { Text("Izinkan pengingat presisi") }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(enabled = !working && reminders != null && !loadError, onClick = {
                     if (medicineName.isBlank() || time == null) {
-                        error = "Enter the medication name and Scheduled Time above."
+                        error = "Isi nama obat dan Waktu Jadwal di atas."
                     } else {
                         val reminder = MedicationReminder(medicine = medicineName.trim(), hour = time.first, minute = time.second)
                             .let { if (editingId == null) it else it.copy(id = editingId!!) }
                         change({ manager.save(reminder) }) {
                             editingId = reminder.id
-                            message = if (notificationsAllowed) "Daily reminder saved." else "Reminder saved. Turn on notifications to receive it."
+                            message = if (notificationsAllowed) "Pengingat harian disimpan." else "Pengingat disimpan. Aktifkan notifikasi untuk menerimanya."
                         }
                     }
-                }) { Text(if (editingId == null) "Save reminder" else "Update reminder") }
-                if (editingId != null) TextButton(onClick = { editingId = null; message = null }) { Text("New reminder") }
+                }) { Text(if (editingId == null) "Simpan pengingat" else "Perbarui pengingat") }
+                if (editingId != null) TextButton(onClick = { editingId = null; message = null }) { Text("Pengingat baru") }
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             message?.let { Text(it) }
             if (loadError) {
-                Text("Unable to load reminders.")
-                TextButton(onClick = { attempt++ }) { Text("Retry") }
+                Text("Gagal memuat pengingat.")
+                TextButton(onClick = { attempt++ }) { Text("Coba Lagi") }
             } else if (reminders == null) {
                 CircularProgressIndicator()
             } else if (reminders!!.isEmpty()) {
-                Text("No reminders yet.", style = MaterialTheme.typography.bodyMedium)
+                Text("Belum ada pengingat.", style = MaterialTheme.typography.bodyMedium)
             } else reminders!!.forEach { reminder ->
                 HorizontalDivider()
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
                         Text(reminder.medicine, style = MaterialTheme.typography.titleMedium)
-                        Text("Every day • ${formatTime12h(reminder.hour, reminder.minute)}")
+                        Text("Setiap hari • ${formatTime12h(reminder.hour, reminder.minute)}")
                     }
                     Switch(checked = reminder.enabled, enabled = !working,
-                        modifier = Modifier.semantics { contentDescription = "Enable reminder for ${reminder.medicine} at ${formatTime12h(reminder.hour, reminder.minute)}" },
+                        modifier = Modifier.semantics { contentDescription = "Aktifkan pengingat untuk ${reminder.medicine} pukul ${formatTime12h(reminder.hour, reminder.minute)}" },
                         onCheckedChange = { enabled -> change({ manager.save(reminder.copy(enabled = enabled)) }) })
                 }
                 Row {
                     TextButton(enabled = !working, onClick = {
                         editingId = reminder.id
                         onEdit(reminder.medicine, formatTime12h(reminder.hour, reminder.minute))
-                        message = "Edit the medication name or Scheduled Time above, then update the reminder."
-                    }) { Text("Edit") }
+                        message = "Ubah nama obat atau Waktu Jadwal di atas, lalu perbarui pengingat."
+                    }) { Text("Ubah") }
                     TextButton(enabled = !working, onClick = {
                         change({ manager.delete(reminder.id) }) { if (editingId == reminder.id) editingId = null }
-                    }) { Text("Delete") }
+                    }) { Text("Hapus") }
                 }
             }
         }

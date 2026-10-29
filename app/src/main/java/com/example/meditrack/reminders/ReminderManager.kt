@@ -93,9 +93,9 @@ class ReminderManager private constructor(private val context: Context) {
             }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_reminder)
-            .setContentTitle("Medication reminder")
-            .setContentText("Time to take ${reminder.medicine}.")
-            .setStyle(NotificationCompat.BigTextStyle().bigText("Time to take ${reminder.medicine}. Open MediTrack to log your dose."))
+            .setContentTitle("Pengingat Minum Obat")
+            .setContentText("Waktunya minum ${reminder.medicine}.")
+            .setStyle(NotificationCompat.BigTextStyle().bigText("Waktunya minum ${reminder.medicine}. Buka MediTrack untuk mencatat dosis Anda."))
             .setContentIntent(open)
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
@@ -109,8 +109,8 @@ class ReminderManager private constructor(private val context: Context) {
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
             context.getSystemService(NotificationManager::class.java).createNotificationChannel(
-                NotificationChannel(CHANNEL, "Medication reminders", NotificationManager.IMPORTANCE_HIGH).apply {
-                    description = "Daily reminders for the medicines and times you choose"
+                NotificationChannel(CHANNEL, "Pengingat Minum Obat", NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = "Pengingat harian untuk obat dan waktu yang Anda pilih"
                 })
         }
     }

@@ -67,13 +67,13 @@ class MedicationFormState(
     }
 
     val nameError: String?
-        get() = if (name.isBlank()) "Medication name is required" else null
+        get() = if (name.isBlank()) "Nama obat harus diisi" else null
 
     val scheduledTimeError: String?
-        get() = if (scheduledTime == null) "Choose a scheduled time" else null
+        get() = if (scheduledTime == null) "Pilih waktu jadwal" else null
 
     val actualTimeError: String?
-        get() = if (isActualTimeEnabled && actualTime == null) "Choose the time you took it" else null
+        get() = if (isActualTimeEnabled && actualTime == null) "Pilih waktu saat Anda meminumnya" else null
 
     val isValid: Boolean
         get() = nameError == null && scheduledTimeError == null && actualTimeError == null

@@ -15,7 +15,7 @@ class MedicationListTest {
         compose.setContent { MediTrackTheme { MediTrackScreen(records = demoMedicationRecords) } }
         val list = compose.onNodeWithTag("medication-list")
         list.performScrollToKey("records-header")
-        compose.onNodeWithText("3 Records").assertIsDisplayed()
+        compose.onNodeWithText("3 Catatan").assertIsDisplayed()
         demoMedicationRecords.forEach {
             list.performScrollToKey("record-${it.id}")
             compose.onNodeWithText(it.name).assertIsDisplayed()
@@ -25,6 +25,6 @@ class MedicationListTest {
     @Test fun emptyStateStillWorksWithoutRecords() {
         compose.setContent { MediTrackTheme { MediTrackScreen() } }
         compose.onNodeWithTag("medication-list").performScrollToKey("empty-records")
-        compose.onNodeWithText("No records yet").assertIsDisplayed()
+        compose.onNodeWithText("Belum ada catatan").assertIsDisplayed()
     }
 }
