@@ -10,7 +10,10 @@ Status dokumen: 29 Oktober 2026. Checklist ini untuk persiapan, bukan pernyataan
 - [ ] Review disclosure AI, tanggal sesi, serta tulis pemahaman/modifikasi mahasiswa sendiri.
 - [ ] Jalankan minimal delapan skenario manual relevan dan catat hasil, penguji, tanggal, serta bukti.
 - [ ] Ganti screenshot arsip dengan minimal tiga screenshot versi akhir menggunakan data simulasi.
-- [ ] Selaraskan penggunaan Room/seed otomatis dengan ketentuan data sementara dan empty state awal UTS.
+- [x] Instalasi baru dimulai dengan empty state; data contoh hanya lewat tombol Isi data contoh (12 November 2026).
+- [ ] Konfirmasi ke dosen bahwa penyimpanan Room dapat diterima sebagai pengganti data sementara UTS.
+- [x] Tes perangkat (`connectedDebugAndroidTest`) versi 12 November 2026: 15 lulus pada TECNO CM7.
+- [ ] Uji notifikasi pengingat (TC-17 sampai TC-19) di tempat yang aman untuk bunyi, atau dengan mode senyap.
 - [ ] Review dokumentasi bersama, kemudian commit dan push berkas yang disetujui.
 - [ ] Pastikan kontribusi Git bermakna setiap anggota dapat diverifikasi, bukan hanya memenuhi hitungan.
 - [ ] Latihan presentasi, defense individual, dan live modification.

@@ -3,8 +3,9 @@ package com.example.meditrack
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
-import com.example.meditrack.data.MedicineCatalogDatabase
-import com.example.meditrack.ui.MediTrackScreen
+import com.example.meditrack.data.MediTrackDatabase
+import com.example.meditrack.ui.LogScreen
+import com.example.meditrack.ui.state.MedicationFormState
 import com.example.meditrack.ui.theme.MediTrackTheme
 import org.junit.Rule
 import org.junit.Test
@@ -17,12 +18,11 @@ class MedicineSearchUiTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val databaseName = "catalog-ui-test.db"
         context.deleteDatabase(databaseName)
-        val catalog = MedicineCatalogDatabase.open(context, databaseName)
+        val database = MediTrackDatabase.open(context, databaseName)
         try {
             compose.setContent {
-                MediTrackTheme { MediTrackScreen(searchMedicines = catalog::suggestions) }
+                MediTrackTheme { LogScreen(form = MedicationFormState(), searchMedicines = database::suggestions) }
             }
-            compose.onNodeWithTag("medication-list").performScrollToKey("form")
             val field = compose.onNodeWithContentDescription("Nama Obat atau Suplemen")
             field.performScrollTo().performTextInput("parasetamol")
             compose.waitUntil(5000) {
@@ -34,7 +34,7 @@ class MedicineSearchUiTest {
             field.performTextInput("My supplement")
             field.assertTextContains("My supplement")
         } finally {
-            catalog.close()
+            database.close()
             context.deleteDatabase(databaseName)
         }
     }

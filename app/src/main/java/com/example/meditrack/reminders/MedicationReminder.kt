@@ -1,10 +1,10 @@
 package com.example.meditrack.reminders
 
-import android.content.Context
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
+/** Stored in the shared app database; see [com.example.meditrack.data.MediTrackDatabase]. */
 @Entity(tableName = "reminders")
 data class MedicationReminder(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
@@ -24,13 +24,4 @@ interface ReminderDao {
     suspend fun find(id: String): MedicationReminder?
     @Upsert suspend fun save(reminder: MedicationReminder)
     @Query("DELETE FROM reminders WHERE id = :id") suspend fun delete(id: String)
-}
-
-@Database(entities = [MedicationReminder::class], version = 1, exportSchema = true)
-abstract class ReminderDatabase : RoomDatabase() {
-    abstract fun reminders(): ReminderDao
-    companion object {
-        fun open(context: Context, name: String = "medication-reminders.db"): ReminderDatabase =
-            Room.databaseBuilder(context.applicationContext, ReminderDatabase::class.java, name).build()
-    }
 }

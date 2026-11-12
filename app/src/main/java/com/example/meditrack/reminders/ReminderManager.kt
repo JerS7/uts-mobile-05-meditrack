@@ -11,15 +11,23 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.meditrack.MainActivity
 import com.example.meditrack.R
+import com.example.meditrack.data.MediTrackDatabase
+import com.example.meditrack.data.toEntity
+import com.example.meditrack.model.DoseStatus
+import com.example.meditrack.model.MedicationRecord
+import com.example.meditrack.ui.state.formatTime12h
+import com.example.meditrack.util.Dates
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import java.util.Calendar
 
 class ReminderManager private constructor(private val context: Context) {
-    private val dao = ReminderDatabase.open(context).reminders()
+    private val database = MediTrackDatabase.getInstance(context)
+    private val dao = database.reminders()
     private val alarms = context.getSystemService(AlarmManager::class.java)
     private val mutex = Mutex()
     private val workScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -38,7 +46,7 @@ class ReminderManager private constructor(private val context: Context) {
     private fun pending(id: String): PendingIntent = PendingIntent.getBroadcast(
         context, 0, Intent(context, ReminderReceiver::class.java).apply {
             data = Uri.parse("meditrack://reminder/$id")
-            putExtra("reminder_id", id)
+            putExtra(EXTRA_REMINDER_ID, id)
         }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
@@ -87,16 +95,28 @@ class ReminderManager private constructor(private val context: Context) {
         schedule(reminder)
         createChannel()
         if (!notificationsAllowed()) return@update
+        val firedAt = System.currentTimeMillis()
+        val scheduledTime = formatTime12h(reminder.hour, reminder.minute)
+        // Tapping the notification opens the form with the name and time already filled in.
         val open = PendingIntent.getActivity(context, 0,
             Intent(context, MainActivity::class.java).apply {
+                action = MainActivity.ACTION_LOG_DOSE
+                data = Uri.parse("meditrack://log/$id")
+                putExtra(MainActivity.EXTRA_MEDICINE, reminder.medicine)
+                putExtra(MainActivity.EXTRA_SCHEDULED_TIME, scheduledTime)
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val text = context.getString(R.string.notification_text, reminder.medicine)
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_reminder)
-            .setContentTitle("Pengingat Minum Obat")
-            .setContentText("Waktunya minum ${reminder.medicine}.")
-            .setStyle(NotificationCompat.BigTextStyle().bigText("Waktunya minum ${reminder.medicine}. Buka MediTrack untuk mencatat dosis Anda."))
+            .setContentTitle(context.getString(R.string.notification_title))
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(R.string.notification_big_text, reminder.medicine)))
             .setContentIntent(open)
+            .addAction(R.drawable.ic_reminder, context.getString(R.string.notification_action_taken),
+                actionIntent(id, DoseStatus.TAKEN, firedAt))
+            .addAction(R.drawable.ic_reminder, context.getString(R.string.notification_action_missed),
+                actionIntent(id, DoseStatus.MISSED, firedAt))
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -106,17 +126,53 @@ class ReminderManager private constructor(private val context: Context) {
         catch (_: SecurityException) { /* The user can revoke notification access at any time. */ }
     }
 
+    private fun actionIntent(id: String, status: DoseStatus, firedAt: Long): PendingIntent = PendingIntent.getBroadcast(
+        context, 0, Intent(context, ReminderActionReceiver::class.java).apply {
+            data = Uri.parse("meditrack://reminder/$id/${status.name.lowercase()}")
+            putExtra(EXTRA_REMINDER_ID, id)
+            putExtra(EXTRA_STATUS, status.name)
+            putExtra(EXTRA_FIRED_AT, firedAt)
+        }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    /**
+     * Saves a Taken or Missed record from a notification button. The record ID is fixed per
+     * reminder and day, so pressing a button twice (or changing Taken to Missed) updates one record.
+     */
+    suspend fun logFromNotification(id: String, status: DoseStatus, firedAt: Long, now: Long = System.currentTimeMillis()) = update {
+        NotificationManagerCompat.from(context).cancel(id, 0)
+        val reminder = dao.find(id) ?: return@update
+        val date = Dates.today(firedAt)
+        val actual = Calendar.getInstance().apply { timeInMillis = now }
+        database.medicationDao().save(
+            MedicationRecord(
+                id = notificationRecordId(id, date),
+                name = reminder.medicine,
+                scheduledTime = formatTime12h(reminder.hour, reminder.minute),
+                actualTime = if (status == DoseStatus.TAKEN) formatTime12h(actual.get(Calendar.HOUR_OF_DAY), actual.get(Calendar.MINUTE)) else null,
+                note = context.getString(R.string.notification_record_note),
+                status = status,
+                date = date,
+            ).toEntity(),
+        )
+    }
+
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
             context.getSystemService(NotificationManager::class.java).createNotificationChannel(
-                NotificationChannel(CHANNEL, "Pengingat Minum Obat", NotificationManager.IMPORTANCE_HIGH).apply {
-                    description = "Pengingat harian untuk obat dan waktu yang Anda pilih"
+                NotificationChannel(CHANNEL, context.getString(R.string.notification_channel_name), NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = context.getString(R.string.notification_channel_description)
                 })
         }
     }
 
     companion object {
         const val CHANNEL = "medication_reminders"
+        const val EXTRA_REMINDER_ID = "reminder_id"
+        const val EXTRA_STATUS = "status"
+        const val EXTRA_FIRED_AT = "fired_at"
+        fun notificationRecordId(reminderId: String, date: String) = "reminder-$reminderId-$date"
+
         @Volatile private var instance: ReminderManager? = null
         fun get(context: Context): ReminderManager = instance ?: synchronized(this) {
             instance ?: ReminderManager(context.applicationContext).also { instance = it }

@@ -3,30 +3,35 @@ package com.example.meditrack.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.meditrack.data.MedicationDatabase
-import com.example.meditrack.data.MedicineCatalogDatabase
+import com.example.meditrack.data.MediTrackDatabase
+import com.example.meditrack.data.demoMedicationRecords
 import com.example.meditrack.data.toEntity
 import com.example.meditrack.model.MedicationRecord
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 
 class MedicationViewModel(application: Application) : AndroidViewModel(application) {
-    private val catalog = MedicineCatalogDatabase.open(application)
-    private val dao = MedicationDatabase.getInstance(application).medicationDao()
-    val records = dao.observeRecords()
-        .onStart { dao.ensureDemoRecords() }
-        .map { rows -> rows.map { it.toRecord() } }
+    private val database = MediTrackDatabase.getInstance(application)
+    private val dao = database.medicationDao()
 
-    suspend fun searchMedicines(query: String): List<String> = catalog.suggestions(query)
+    /** Newest day first, then most recently added. */
+    val records = dao.observeRecords().map { rows -> rows.map { it.toRecord() } }
 
-    override fun onCleared() {
-        catalog.close()
-        super.onCleared()
+    suspend fun searchMedicines(query: String): List<String> = database.suggestions(query)
+
+    // Writes survive activity recreation; the UI reports success only after they commit.
+
+    /** Adds a new record or replaces the record with the same ID. */
+    suspend fun save(record: MedicationRecord) {
+        viewModelScope.async { dao.save(record.toEntity()) }.await()
     }
 
-    // The write survives activity recreation; the UI reports success only after it commits.
-    suspend fun save(record: MedicationRecord) {
-        viewModelScope.async { dao.insert(record.toEntity()) }.await()
+    suspend fun delete(id: String) {
+        viewModelScope.async { dao.delete(id) }.await()
+    }
+
+    /** Adds the three UTS sample records for today. Repeated taps do not duplicate them. */
+    suspend fun addDemoRecords() {
+        viewModelScope.async { dao.insertMissing(demoMedicationRecords().map { it.toEntity() }) }.await()
     }
 }

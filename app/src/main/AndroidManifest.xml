@@ -16,6 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MediTrack">
         <receiver android:name=".reminders.ReminderReceiver" android:exported="false" />
+        <receiver android:name=".reminders.ReminderActionReceiver" android:exported="false" />
         <receiver android:name=".reminders.RestoreRemindersReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

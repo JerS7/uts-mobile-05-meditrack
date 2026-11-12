@@ -1,3 +1,148 @@
 <resources>
     <string name="app_name">MediTrack</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Beranda</string>
+    <string name="nav_log">Catat</string>
+    <string name="nav_reminders">Pengingat</string>
+    <string name="nav_history">Riwayat</string>
+
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">Batal</string>
+    <string name="retry">Coba Lagi</string>
+    <string name="pick">Pilih</string>
+    <string name="pick_value">Pilih %1$s</string>
+    <string name="percent">%1$d%%</string>
+    <string name="load_failed">Gagal memuat catatan yang tersimpan.</string>
+    <string name="action_failed">Aksi gagal. Silakan coba lagi.</string>
+    <string name="action_edit">Ubah</string>
+    <string name="action_edit_named">Ubah %1$s</string>
+    <string name="action_delete">Hapus</string>
+    <string name="action_delete_named">Hapus %1$s</string>
+    <string name="action_undo">Urungkan</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_log_dose">Catat obat</string>
+    <string name="action_open_history">Lihat riwayat</string>
+    <string name="action_add_demo">Isi data contoh</string>
+    <string name="status_taken">Diminum</string>
+    <string name="status_missed">Terlewat</string>
+
+    <!-- Home -->
+    <string name="profile_illustration">Ilustrasi Profil</string>
+    <string name="home_eyebrow">KESEHATAN RUTINITAS KAMPUS</string>
+    <string name="home_title">Pencatat Kepatuhan Minum Obat Pribadi</string>
+    <string name="home_subtitle">Jaga agar beban kuliah harian dan resep kesehatan Anda selaras tanpa stres.</string>
+    <string name="home_disclaimer">Aplikasi latihan. Bukan pengganti saran dokter atau apoteker.</string>
+    <string name="home_today_label">Ringkasan hari ini, %1$s</string>
+    <string name="home_today_records">Catatan Hari Ini</string>
+    <string name="summary_logged">Terdaftar</string>
+    <string name="summary_logged_unit">dosis dicatat</string>
+    <string name="summary_taken">Diminum</string>
+    <string name="summary_taken_unit">selesai</string>
+    <string name="summary_missed">Terlewat</string>
+    <string name="summary_missed_unit">dosis</string>
+    <string name="summary_adherence">Kepatuhan</string>
+    <string name="summary_adherence_unit">dari dosis dicatat</string>
+    <string name="progress_title">Progres Konsumsi Obat Hari Ini</string>
+    <string name="progress_detail">%1$d dari %2$d dosis terdaftar telah diminum</string>
+    <string name="progress_hint_empty">Tambahkan catatan obat untuk melihat progres Anda hari ini.</string>
+    <string name="progress_hint">Progres didasarkan pada dosis yang Anda catat hari ini.</string>
+    <string name="footer_project">Proyek Akademik MediTrack: UTS Sementara untuk kuliah Pemrograman Bergerak</string>
+    <string name="footer_disclaimer">Bukan aplikasi resmi, jangan gunakan untuk kebutuhan medis</string>
+    <string name="empty_title">Belum ada catatan</string>
+    <string name="empty_message">Catatan riwayat obat harian Anda akan muncul di sini.</string>
+    <string name="empty_today_title">Belum ada catatan hari ini</string>
+    <string name="empty_today_message">Catat dosis hari ini, atau lihat catatan hari sebelumnya di Riwayat.</string>
+    <string name="demo_added">Data contoh ditambahkan.</string>
+
+    <!-- Record list -->
+    <string name="record_count">%1$d Catatan</string>
+    <string name="record_scheduled">Jadwal: %1$s</string>
+    <string name="record_actual">Aktual: %1$s</string>
+    <string name="record_note">"“%1$s”"</string>
+
+    <!-- Log form -->
+    <string name="log_title">Catat Dosis</string>
+    <string name="log_subtitle">Catat obat yang diminum atau terlewat.</string>
+    <string name="log_title_edit">Ubah Catatan</string>
+    <string name="log_subtitle_edit">Perbaiki catatan, lalu simpan perubahan.</string>
+    <string name="log_form_heading">Catat Konsumsi Obat</string>
+    <string name="field_medicine_name">Nama Obat atau Suplemen</string>
+    <string name="field_medicine_name_hint">contoh: Parasetamol</string>
+    <string name="field_date">Tanggal</string>
+    <string name="field_scheduled_time">Waktu Jadwal</string>
+    <string name="field_actual_time">Waktu Aktual</string>
+    <string name="field_actual_time_disabled">Belum diminum</string>
+    <string name="field_status">Status Dosis</string>
+    <string name="field_note">Catatan / Rutinitas Kampus (opsional)</string>
+    <string name="field_note_hint">contoh: Diminum saat sarapan sebelum kuliah jam 9 pagi di Ruang B</string>
+    <string name="missed_hint">Dosis yang terlewat disimpan tanpa waktu aktual.</string>
+    <string name="action_add_record">Tambah Catatan</string>
+    <string name="action_save_changes">Simpan Perubahan</string>
+    <string name="saving_record">Menyimpan catatan…</string>
+    <string name="save_failed">Gagal menyimpan. Data input Anda masih ada. Silakan coba lagi.</string>
+    <string name="record_saved">%1$s berhasil disimpan di perangkat ini.</string>
+    <string name="changes_saved">Perubahan pada %1$s disimpan.</string>
+    <string name="error_name_required">Nama obat harus diisi</string>
+    <string name="error_scheduled_time_required">Pilih waktu jadwal</string>
+    <string name="error_actual_time_required">Pilih waktu saat Anda meminumnya</string>
+    <string name="error_date_in_future">Tanggal tidak boleh melewati hari ini</string>
+    <string name="search_in_progress">Mencari nama obat…</string>
+    <string name="search_failed">Pencarian nama tidak tersedia. Anda tetap dapat memasukkan nama secara manual.</string>
+    <string name="search_no_match">Tidak ada nama yang cocok. Anda tetap dapat memasukkan nama sendiri.</string>
+
+    <!-- History -->
+    <string name="history_title">Riwayat</string>
+    <string name="history_subtitle">Semua catatan, dari yang terbaru.</string>
+    <string name="history_records">Catatan</string>
+    <string name="history_summary">%1$d diminum • %2$d terlewat • kepatuhan %3$d%%</string>
+    <string name="filter_all">Semua</string>
+    <string name="filter_date">Tanggal</string>
+    <string name="filter_all_dates">Semua tanggal</string>
+    <string name="filter_clear_date">Hapus filter</string>
+    <string name="empty_filter_title">Tidak ada catatan yang cocok</string>
+    <string name="empty_filter_message">Ubah filter status atau tanggal.</string>
+    <string name="day_today">Hari ini, %1$s</string>
+    <string name="day_yesterday">Kemarin, %1$s</string>
+    <string name="delete_title">Hapus catatan?</string>
+    <string name="delete_message">Catatan %1$s pada %2$s akan dihapus.</string>
+    <string name="record_deleted">Catatan %1$s dihapus.</string>
+
+    <!-- Reminders -->
+    <string name="reminder_title">Pengingat Harian</string>
+    <string name="reminder_subtitle">Notifikasi setiap hari pada waktu yang Anda pilih.</string>
+    <string name="reminder_form_new">Pengingat baru</string>
+    <string name="reminder_form_edit">Ubah pengingat</string>
+    <string name="field_reminder_time">Waktu Pengingat</string>
+    <string name="reminder_notification_hint">Dari notifikasi, tekan Sudah diminum atau Terlewat untuk langsung mencatat dosis, atau ketuk notifikasi untuk membuka form.</string>
+    <string name="reminder_save">Simpan pengingat</string>
+    <string name="reminder_update">Perbarui pengingat</string>
+    <string name="reminder_working">Memperbarui pengingat…</string>
+    <string name="reminder_missing_input">Isi nama obat dan waktu pengingat.</string>
+    <string name="reminder_saved">Pengingat harian disimpan.</string>
+    <string name="reminder_saved_no_notifications">Pengingat disimpan. Aktifkan notifikasi untuk menerimanya.</string>
+    <string name="reminder_update_failed">Gagal memperbarui pengingat. Silakan coba lagi.</string>
+    <string name="reminder_edit_hint">Ubah nama obat atau waktu, lalu tekan Perbarui pengingat.</string>
+    <string name="reminder_notifications_off">Notifikasi mati. Aktifkan untuk menerima pengingat minum obat.</string>
+    <string name="reminder_allow_notifications">Izinkan notifikasi</string>
+    <string name="reminder_notification_settings">Pengaturan notifikasi</string>
+    <string name="reminder_exact_off">Tanpa akses alarm presisi, Android dapat menunda pengingat.</string>
+    <string name="reminder_allow_exact">Izinkan pengingat presisi</string>
+    <string name="reminder_list_title">Daftar Pengingat</string>
+    <string name="reminder_count">%1$d Pengingat</string>
+    <string name="reminder_load_failed">Gagal memuat pengingat.</string>
+    <string name="reminder_empty">Belum ada pengingat.</string>
+    <string name="reminder_daily_at">Setiap hari • %1$s</string>
+    <string name="reminder_switch_label">Aktifkan pengingat untuk %1$s pukul %2$s</string>
+
+    <!-- Notification -->
+    <string name="notification_channel_name">Pengingat Minum Obat</string>
+    <string name="notification_channel_description">Pengingat harian untuk obat dan waktu yang Anda pilih</string>
+    <string name="notification_title">Pengingat Minum Obat</string>
+    <string name="notification_text">Waktunya minum %1$s.</string>
+    <string name="notification_big_text">Waktunya minum %1$s. Tekan Sudah diminum atau Terlewat untuk mencatat dosis.</string>
+    <string name="notification_action_taken">Sudah diminum</string>
+    <string name="notification_action_missed">Terlewat</string>
+    <string name="notification_record_note">Dicatat dari notifikasi pengingat.</string>
 </resources>

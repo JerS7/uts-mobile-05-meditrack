@@ -1,14 +1,16 @@
 # Skenario dan hasil pengujian
 
-Disiapkan 29 Oktober 2026 untuk kode sampai commit `9a154b5`. Dokumen membedakan hasil otomatis yang tersedia, pemeriksaan kode, dan skenario manual yang masih menunggu pelaksanaan.
+Diperbarui 12 November 2026 untuk versi dengan navigasi empat halaman, tanggal catatan, ubah/hapus, filter riwayat, tombol pada notifikasi, dan database gabungan (belum di-commit saat dokumen ini ditulis). Dokumen membedakan hasil otomatis yang tersedia, pemeriksaan kode, dan skenario manual yang masih menunggu pelaksanaan.
 
 ## Bukti tersedia
 
-- Build `assembleDebug assembleDebugAndroidTest` berhasil pada 29 Oktober 2026 setelah perubahan nama dummy.
-- Laporan XML lokal `app/build/test-results/testDebugUnitTest/` bertimestamp 29 Oktober 2026: 11 tes, 0 gagal, 0 error. Terdiri dari ExampleUnitTest (1), ReminderTimeTest (4), MedicationFormStateTest (1), MediTrackStateTest (5). Tes state sementara tidak membuktikan seluruh alur Room produksi.
-- MedicationDatabaseTest: 2 tes lulus setelah perubahan nama dummy pada TECNO CM7 Android 16. Mencakup persistensi saat database dibuka kembali serta seed idempotent/pembaruan nama dummy dengan catatan lain tetap utuh.
-- Pada perubahan LazyColumn sebelumnya, empty state dan pencarian nama lulus. Tes daftar sempat gagal karena Activity terhenti; pengulangan tes daftar secara terpisah lulus. Ini bukan bukti bahwa seluruh suite selalu stabil.
-- Aplikasi hasil build terbaru berhasil dipasang dan dibuka pada perangkat. Seluruh pengujian di atas dijalankan melalui bantuan agen; penguji manual mahasiswa belum dicatat.
+- 12 November 2026: `testDebugUnitTest assembleDebug assembleDebugAndroidTest lintDebug` berhasil. Unit test: 27 tes, 0 gagal, 0 error. Terdiri dari ExampleUnitTest (1), ReminderTimeTest (4), MediTrackStateTest (5), MedicationFormStateTest (9: validasi, tanggal, tanggal masa depan, ubah catatan, isian dari pengingat, konversi waktu), RecordStatsTest (3: ringkasan dan filter), DatesTest (5).
+- 12 November 2026: SQL migrasi database versi 1 ke 2 disimulasikan dengan SQLite di komputer. Skema hasil migrasi sama dengan skema yang diharapkan Room, data catatan lama tetap ada dan diberi tanggal, nama dummy lama diganti, dan ID ganda tidak menyebabkan kegagalan. Ini bukan pengganti `MigrationTest` pada perangkat.
+- 12 November 2026, TECNO CM7 Android 16: `connectedDebugAndroidTest` 15 tes, 0 gagal. MedicationDatabaseTest (4), MigrationTest (1), MedicineCatalogTest (1), ReminderDatabaseTest (1), MedicationListTest (4), MedicineSearchUiTest (1), EditDeleteUiTest (2), ExampleInstrumentedTest (1).
+- 12 November 2026, TECNO CM7: versi ini dipasang di atas versi lama yang berisi 4 catatan dan 2 pengingat (TC-16). Keempat catatan tetap ada dengan tanggal hari itu, kedua pengingat tetap aktif dan terjadwal, berkas database lama terhapus.
+- 12 November 2026, TECNO CM7, dijalankan agen melalui `adb` (bukan pengujian manual mahasiswa): TC-01, TC-02 (tanpa uji tekan ulang), TC-04 sampai TC-06 (pesan validasi), TC-09, TC-10, TC-12 (Hapus, Batal tidak dicoba di perangkat, Urungkan berhasil), TC-13 (filter Diminum), TC-14, dan penyimpanan pengingat pada TC-17 sesuai harapan. Screenshot ada di `docs/screenshots`. Alarm presisi untuk TC-17 terverifikasi terjadwal, tetapi pengujian dihentikan sebelum notifikasi muncul; TC-17 sampai TC-19 belum terbukti.
+- Hasil versi sebelumnya (29 Oktober 2026, sampai commit `9a154b5`): dua tes MedicationDatabaseTest lulus pada TECNO CM7 Android 16; tes empty state, pencarian, dan LazyColumn sempat lulus. Hasil tersebut berlaku untuk kode lama.
+- Seluruh pengujian di atas dijalankan melalui bantuan agen; penguji manual mahasiswa belum dicatat.
 
 ## Skenario manual
 
@@ -16,20 +18,28 @@ Untuk setiap baris, catat tanggal, nama penguji, hasil aktual, status lulus/gaga
 
 | ID | Langkah/input | Hasil yang diharapkan | Bukti/status saat disiapkan |
 | --- | --- | --- | --- |
-| TC-01 | Buka aplikasi pada instalasi baru tanpa data lama | Versi saat ini menampilkan 3 dummy, 2 Taken, 1 Missed, 66% | Seed diuji otomatis; verifikasi manual ringkasan belum dicatat. Berbeda dari empty state awal yang diminta PDF |
-| TC-02 | Tampilkan MediTrackScreen dengan daftar kosong melalui tes UI | No records yet; ringkasan nol | Empty state lulus pada tes UI sebelumnya; tidak tersedia sebagai mode awal produksi saat seed aktif |
-| TC-03 | Isi nama Paracetamol, jadwal 08:00 AM, aktual 08:05 AM, Taken, catatan simulasi; Add Record | Catatan muncul; total dan Taken bertambah 1; form kosong setelah simpan | Belum dicatat manual untuk versi akhir |
-| TC-04 | Nama kosong atau spasi, waktu lain terisi; Add Record | Medication name is required; tidak menambah catatan | Ada aturan di kode; belum dicatat manual |
-| TC-05 | Nama terisi, Scheduled Time belum dipilih; Add Record | Choose a scheduled time; tidak menambah catatan | Ada aturan di kode; belum dicatat manual |
-| TC-06 | Pilih Taken tanpa Actual Time; Add Record | Choose the time you took it; tidak menambah catatan | Ada aturan di kode; belum dicatat manual |
-| TC-07 | Isi waktu aktual lalu ganti status ke Missed; simpan dengan nama dan jadwal valid | Waktu aktual kosong/nonaktif, catatan Missed tersimpan tanpa waktu aktual | Ada aturan di kode; belum dicatat manual |
-| TC-08 | Isi semua input lalu tekan Reset | Nama, waktu, catatan kosong; status Taken; pesan validasi hilang | Reset sesudah submit dicakup tes state; klik Reset di UI belum dicatat manual |
-| TC-09 | Gulir daftar hingga semua tiga dummy terlihat | Nama dan status tiap catatan tampil di Card; jumlah 3 jika tidak ada catatan tambahan | Tes LazyColumn lulus setelah pengulangan sebelum koreksi nama; belum dicatat manual versi akhir |
-| TC-10 | Dari tepat 3 dummy, tambah 1 Taken | Scheduled 4, Taken 3, Missed 1, persentase 75% | Ekspektasi berdasarkan rumus; belum dicatat manual |
-| TC-11 | Ketik parasetamol, pilih Paracetamol, lalu ubah nama sendiri | Hasil pencarian dapat dipilih dan kolom tetap bisa diedit | Tes pencarian UI lulus pada perubahan sebelumnya |
-| TC-12 | Tutup dan buka kembali aplikasi setelah simpan | Catatan bertahan, dummy tidak berulang | Persistensi dan idempotensi lulus otomatis; siklus tutup/buka manual belum dicatat |
-| TC-13 | Isi nama/jadwal dan simpan pengingat; beri izin yang diminta | Pengingat tersimpan dengan nama/waktu yang dipilih; notifikasi muncul sesuai kondisi izin/perangkat | Pengiriman notifikasi versi akhir belum dicatat manual |
-| TC-14 | Skenario huruf pada input angka, nilai negatif/nol | Tidak berlaku untuk kolom jumlah/dosis: aplikasi tidak memiliki kolom tersebut. Waktu dipilih lewat picker; 00:00 adalah waktu valid | N/A untuk kolom numerik. Jangan menganggap semua nol tidak valid |
+| TC-01 | Buka aplikasi pada instalasi baru tanpa data lama | Beranda menampilkan "Belum ada catatan", ringkasan 0 dan 0%, tombol Catat obat dan Isi data contoh | Dicakup tes UI (belum dijalankan); belum dicatat manual |
+| TC-02 | Pada TC-01, tekan Isi data contoh | Tiga catatan hari ini: 3 terdaftar, 2 Diminum, 1 Terlewat, 66%. Menekan lagi tidak menambah duplikat | Idempotensi dicakup tes database (belum dijalankan); belum dicatat manual |
+| TC-03 | Halaman Catat: Paracetamol, tanggal hari ini, jadwal 08:00 AM, aktual 08:05 AM, Diminum, catatan simulasi; Tambah Catatan | Pesan berhasil; form kosong; catatan muncul paling atas di Beranda dan Riwayat; ringkasan hari ini bertambah | Belum dicatat manual |
+| TC-04 | Nama kosong atau spasi, kolom lain terisi; Tambah Catatan | "Nama obat harus diisi"; tidak menambah catatan | Dicakup unit test; belum dicatat manual |
+| TC-05 | Nama terisi, Waktu Jadwal belum dipilih; Tambah Catatan | "Pilih waktu jadwal"; tidak menambah catatan | Dicakup unit test; belum dicatat manual |
+| TC-06 | Pilih Diminum tanpa Waktu Aktual; Tambah Catatan | "Pilih waktu saat Anda meminumnya"; tidak menambah catatan | Dicakup unit test; belum dicatat manual |
+| TC-07 | Isi waktu aktual lalu ganti status ke Terlewat; simpan dengan nama dan jadwal valid | Waktu aktual kosong/nonaktif, catatan Terlewat tersimpan tanpa waktu aktual | Dicakup unit test; belum dicatat manual |
+| TC-08 | Isi semua input lalu tekan Reset | Nama, waktu, catatan kosong; tanggal hari ini; status Diminum; pesan validasi hilang | Dicakup unit test; belum dicatat manual |
+| TC-09 | Pilih tanggal kemarin pada form lalu simpan | Catatan muncul di Riwayat pada grup "Kemarin", tidak dihitung di ringkasan Beranda hari ini | Belum dicatat manual |
+| TC-10 | Buka pemilih tanggal pada form | Hari setelah hari ini tidak dapat dipilih | Belum dicatat manual |
+| TC-11 | Riwayat: tekan Ubah pada sebuah catatan, ganti nama dan status, Simpan Perubahan | Kembali ke Riwayat; catatan yang sama berubah di posisinya, jumlah catatan tetap | Dicakup tes UI dan database (belum dijalankan); belum dicatat manual |
+| TC-12 | Riwayat: tekan Hapus, lalu Batal; ulangi lalu konfirmasi Hapus; tekan Urungkan pada pesan | Batal tidak menghapus; Hapus menghilangkan catatan; Urungkan mengembalikannya | Konfirmasi dicakup tes UI (belum dijalankan); Urungkan belum diuji |
+| TC-13 | Riwayat: filter Terlewat, lalu pilih satu tanggal, lalu Hapus filter | Hanya catatan yang cocok tampil; jumlah dan ringkasan mengikuti filter | Filter status dicakup unit dan tes UI (belum dijalankan) |
+| TC-14 | Ketik parasetamol, pilih Paracetamol, lalu ubah nama sendiri | Saran dapat dipilih dan kolom tetap bisa diedit | Dicakup tes UI (belum dijalankan) |
+| TC-15 | Tutup dan buka kembali aplikasi setelah simpan | Catatan bertahan dengan tanggalnya | Dicakup tes database (belum dijalankan); belum dicatat manual |
+| TC-16 | Pasang versi ini di atas versi lama yang sudah berisi catatan dan pengingat | Catatan lama tetap ada dengan tanggal hari pembaruan; pengingat lama tetap ada dan aktif | Migrasi disimulasikan dengan SQLite; MigrationTest belum dijalankan; belum dicatat manual |
+| TC-17 | Halaman Pengingat: isi nama dan waktu 1-2 menit ke depan, Simpan pengingat, beri izin notifikasi | Notifikasi "Pengingat Minum Obat" muncul dengan tombol Sudah diminum dan Terlewat | Belum diuji pada perangkat. Gunakan emulator atau mode senyap |
+| TC-18 | Pada notifikasi TC-17 tekan Sudah diminum | Notifikasi hilang; catatan Diminum hari ini dengan jadwal pengingat dan waktu aktual saat itu muncul di Beranda | Belum diuji pada perangkat |
+| TC-19 | Ulangi TC-17 lalu ketuk badan notifikasi | Aplikasi membuka halaman Catat dengan nama, jadwal, dan waktu aktual terisi | Belum diuji pada perangkat |
+| TC-20 | Ubah pengingat yang sedang nonaktif lalu Perbarui pengingat | Pengingat tetap nonaktif | Diperiksa pada kode; belum dicatat manual |
+| TC-21 | Saat berada di Riwayat atau Pengingat, tekan tombol Kembali | Kembali ke Beranda; dari Ubah Catatan kembali ke Riwayat | Belum dicatat manual |
+| TC-22 | Skenario huruf pada input angka, nilai negatif/nol | Tidak berlaku untuk kolom jumlah/dosis: aplikasi tidak memiliki kolom tersebut. Waktu dipilih lewat picker; 00:00 adalah waktu valid | N/A untuk kolom numerik. Jangan menganggap semua nol tidak valid |
 
 ## Format pencatatan pelaksanaan
 
@@ -37,8 +47,8 @@ Untuk setiap baris, catat tanggal, nama penguji, hasil aktual, status lulus/gaga
 | --- | --- | --- | --- | --- | --- | --- |
 | Isi setelah pengujian | | | | | | |
 
-Untuk pengumpulan, jalankan dan dokumentasikan setidaknya delapan skenario yang relevan; jangan menghitung N/A sebagai tes lulus. Gunakan data simulasi. Tidak perlu menghapus data perangkat utama untuk menjalankan skenario instalasi baru; gunakan emulator/perangkat uji terpisah.
+Untuk pengumpulan, jalankan dan dokumentasikan setidaknya delapan skenario yang relevan; jangan menghitung N/A sebagai tes lulus. Gunakan data simulasi. Tidak perlu menghapus data perangkat utama untuk menjalankan skenario instalasi baru; gunakan emulator/perangkat uji terpisah. Untuk TC-17 sampai TC-19, notifikasi hanya berbunyi satu kali seperti notifikasi biasa (bukan alarm berulang); gunakan emulator atau mode senyap bila tidak ingin ada suara.
 
 ## Menjalankan tes otomatis
 
-Unit test: `./gradlew.bat testDebugUnitTest`. Build APK dan test APK: `./gradlew.bat assembleDebug assembleDebugAndroidTest`. Tes perangkat dapat dijalankan melalui Android Studio pada kelas di `app/src/androidTest`. Siapkan perangkat uji dan izin yang sesuai. Laporan build di folder build tidak otomatis masuk Git.
+Unit test: `./gradlew.bat testDebugUnitTest`. Build APK dan test APK: `./gradlew.bat assembleDebug assembleDebugAndroidTest`. Tes perangkat: `./gradlew.bat connectedDebugAndroidTest` dengan perangkat atau emulator tersambung, atau melalui Android Studio pada kelas di `app/src/androidTest`. Laporan build di folder build tidak otomatis masuk Git.

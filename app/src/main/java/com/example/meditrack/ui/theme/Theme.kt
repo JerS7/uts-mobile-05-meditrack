@@ -13,6 +13,13 @@ private val MediTrackColors = lightColorScheme(
     onPrimaryContainer = TealInk,
     secondary = TealBright,
     onSecondary = Color.White,
+    // Selected filter chips and the snackbar action would otherwise use Material's default purple.
+    secondaryContainer = TealContainer,
+    onSecondaryContainer = TealInk,
+    inversePrimary = TealLight,
+    // Dialogs and pickers use these containers; keep them neutral instead of lavender.
+    surfaceContainerHigh = Color.White,
+    surfaceContainerHighest = PanelBackground,
     background = PageBackground,
     onBackground = TextPrimary,
     surface = Color.White,

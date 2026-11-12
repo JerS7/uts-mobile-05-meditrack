@@ -32,5 +32,8 @@ internal object MediTrackIcons {
     val Clock = outline("Clock", "M22 12 A10 10 0 1 1 2 12 A10 10 0 1 1 22 12 M12 6 L12 12 L16 15")
     val Reset = outline("Reset", "M4 8 A9 9 0 1 1 3 15 M4 3 L4 8 L9 8")
     val Eye = outline("Eye", "M2 12 C7 3 17 3 22 12 C17 21 7 21 2 12 Z M15 12 A3 3 0 1 1 9 12 A3 3 0 1 1 15 12")
-    val Shield = outline("Shield", "M12 2 L20 6 L19 15 Q18 19 12 22 Q6 19 5 15 L4 6 Z M8 12 L11 15 L16 9")
+    val Home = outline("Home", "M3 11 L12 3 L21 11 M5 9 L5 21 L19 21 L19 9 M10 21 L10 15 L14 15 L14 21")
+    val Bell = outline("Bell", "M6 17 L6 11 A6 6 0 0 1 18 11 L18 17 L20 19 L4 19 Z M10 22 L14 22")
+    val History = outline("History", "M8 6 L20 6 M8 12 L20 12 M8 18 L20 18 M4 6 L4.1 6 M4 12 L4.1 12 M4 18 L4.1 18")
+    val Shield =outline("Shield", "M12 2 L20 6 L19 15 Q18 19 12 22 Q6 19 5 15 L4 6 Z M8 12 L11 15 L16 9")
 }

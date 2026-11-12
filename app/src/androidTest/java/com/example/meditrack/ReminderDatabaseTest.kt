@@ -2,7 +2,7 @@ package com.example.meditrack
 
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.meditrack.reminders.MedicationReminder
-import com.example.meditrack.reminders.ReminderDatabase
+import com.example.meditrack.data.MediTrackDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -13,13 +13,13 @@ class ReminderDatabaseTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val name = "reminders-test.db"
         context.deleteDatabase(name)
-        var database = ReminderDatabase.open(context, name)
+        var database = MediTrackDatabase.open(context, name)
         val reminder = MedicationReminder(medicine = "Test medicine", hour = 8, minute = 30)
         try {
             assertTrue(database.reminders().observe().first().isEmpty())
             database.reminders().save(reminder)
             database.close()
-            database = ReminderDatabase.open(context, name)
+            database = MediTrackDatabase.open(context, name)
             assertEquals(reminder, database.reminders().find(reminder.id))
             val edited = reminder.copy(hour = 10, minute = 15, enabled = false)
             database.reminders().save(edited)

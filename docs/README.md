@@ -10,14 +10,18 @@ Pengguna dapat lupa apakah obat sudah diminum. MediTrack membantu pengguna dan p
 
 ## Fitur
 
-- Form dengan nama obat/suplemen, pemilih waktu, status Taken/Missed, catatan, Add Record, dan Reset.
-- Daftar catatan dalam Card menggunakan LazyColumn.
-- Ringkasan Scheduled, Taken, Missed, dan persentase yang berubah mengikuti catatan tersimpan.
-- Pencarian nama pada katalog lokal terpisah berisi 30 nama; nama di luar katalog tetap dapat diketik.
-- Penyimpanan lokal dengan Room serta pengingat harian yang diatur di dalam form.
-- Tiga data dummy: Paracetamol, Ascorbic acid (Vitamin C), dan Loratadine. Dua Taken dan satu Missed; persentase awal 66% karena tampilan membuang pecahan.
+Aplikasi memiliki empat halaman pada navigasi bawah. Tombol Kembali dari halaman lain kembali ke Beranda.
 
-Scheduled menghitung jumlah **catatan**, bukan jumlah pengingat aktif. Ringkasan mencakup seluruh catatan tersimpan, belum difilter per tanggal. Menyimpan pengingat tidak otomatis membuat catatan Taken/Missed.
+- **Beranda**: ringkasan **hari ini** (Terdaftar, Diminum, Terlewat, Kepatuhan %), progres, dan daftar catatan hari ini. Saat belum ada catatan sama sekali, tampil empty state "Belum ada catatan" dengan tombol **Catat obat** dan **Isi data contoh**.
+- **Catat**: form berisi nama obat/suplemen (dengan saran dari katalog), **Tanggal**, Waktu Jadwal, Waktu Aktual, status Diminum/Terlewat, catatan, **Tambah Catatan**, dan **Reset**. Form yang sama dipakai untuk mengubah catatan (**Simpan Perubahan** / **Batal**). Draf form tetap ada saat berpindah halaman.
+- **Pengingat**: pengingat harian dengan nama dan waktunya sendiri, terpisah dari form catatan. Pengingat dapat diubah, dinonaktifkan, atau dihapus.
+- **Riwayat**: semua catatan dikelompokkan per tanggal (Hari ini, Kemarin, lalu tanggal), dari yang terbaru. Filter status (Semua/Diminum/Terlewat) dan tanggal, ringkasan hasil filter, tombol **Ubah** dan **Hapus** (dengan konfirmasi dan **Urungkan**).
+- **Notifikasi pengingat** memiliki tombol **Sudah diminum** dan **Terlewat** yang langsung menyimpan catatan untuk hari itu. Menekan tombol dua kali atau mengganti pilihan memperbarui catatan yang sama, bukan menambah duplikat. Mengetuk notifikasi membuka halaman Catat dengan nama, jadwal, dan waktu aktual (waktu saat ini) yang sudah terisi.
+- Pencarian nama pada katalog lokal berisi 30 nama; nama di luar katalog tetap dapat diketik.
+- Tiga data contoh (Paracetamol, Ascorbic acid (Vitamin C), dan Loratadine; dua Diminum dan satu Terlewat, persentase 66% karena pecahan dibuang) hanya ditambahkan saat tombol **Isi data contoh** ditekan, dengan tanggal hari itu.
+- Seluruh teks antarmuka berada di `res/values/strings.xml`.
+
+Terdaftar menghitung jumlah **catatan hari ini**, bukan jumlah pengingat aktif. Menyimpan pengingat tidak otomatis membuat catatan; catatan dibuat dari form atau tombol pada notifikasi.
 
 ## Model data dan penyimpanan
 
@@ -25,24 +29,32 @@ Model utama: `MedicationRecord`.
 
 | Properti | Tipe | Keterangan |
 | --- | --- | --- |
-| id | String | Identitas catatan |
+| id | String | Identitas catatan (unik) |
 | name | String | Nama/alias obat |
 | scheduledTime | String | Jadwal, format 12 jam |
-| actualTime | String? | Waktu aktual; null untuk Missed |
+| actualTime | String? | Waktu aktual; null untuk Terlewat |
 | status | DoseStatus | Enum TAKEN atau MISSED |
 | note | String | Catatan opsional |
+| date | String | Tanggal dosis, `yyyy-MM-dd` waktu lokal |
 
-Room menyimpan data di direktori internal aplikasi pada perangkat: `meditrack.db` untuk catatan, `medicine-catalog.db` untuk katalog, dan `medication-reminders.db` untuk pengingat. Data bertahan saat aplikasi dibuka kembali. Tiga dummy memakai ID tetap sehingga tidak berulang saat aplikasi dibuka. Nama dummy versi lama diperbarui tanpa mengganti catatan lain.
+Room menyimpan semua data dalam satu berkas `meditrack.db` di direktori internal aplikasi, berisi tabel `medication_records`, `medicines` (katalog), dan `reminders`. Versi database 2. Migrasi dari versi 1:
 
-Persentase = Taken / jumlah catatan × 100; ketika daftar kosong nilainya 0%. State form menggunakan Compose dan rememberSaveable; data tersimpan diamati melalui Flow.
+- membuat ulang tabel catatan dengan kolom `date` dan ID unik; catatan lama diberi tanggal hari pembaruan karena versi 1 tidak menyimpan tanggal;
+- mengganti nama dummy versi lama ("Obat Simulasi A/B/C");
+- membuat tabel katalog dan pengingat. Pengingat dari berkas lama `medication-reminders.db` disalin dengan ID yang sama, lalu berkas lama dan `medicine-catalog.db` dihapus.
+
+Catatan diurutkan dari tanggal terbaru, lalu dari yang terakhir ditambahkan. Mengubah catatan tidak memindahkan posisinya dalam hari yang sama.
+
+Persentase = Diminum / jumlah catatan × 100, dibulatkan ke bawah; ketika tidak ada catatan nilainya 0%. State form menggunakan Compose dan rememberSaveable; data tersimpan diamati melalui Flow.
 
 ## Validasi
 
 - Nama wajib diisi dan tidak hanya spasi; maksimal 60 karakter.
-- Scheduled Time wajib dipilih melalui pemilih waktu.
-- Actual Time wajib untuk Taken; dikosongkan dan dinonaktifkan untuk Missed.
+- Tanggal default hari ini dan tidak boleh melewati hari ini (pemilih tanggal juga menonaktifkan hari berikutnya).
+- Waktu Jadwal wajib dipilih melalui pemilih waktu.
+- Waktu Aktual wajib untuk Diminum; dikosongkan dan dinonaktifkan untuk Terlewat.
 - Catatan opsional, maksimal 160 karakter.
-- Simpan yang tidak valid menampilkan kesalahan. Form direset setelah penyimpanan berhasil; kegagalan penyimpanan mempertahankan input.
+- Simpan yang tidak valid menampilkan kesalahan. Form direset setelah penyimpanan berhasil; kegagalan penyimpanan mempertahankan input. Pesan gagal hilang saat input diubah atau Reset ditekan.
 - Tidak ada kolom jumlah/dosis numerik. Skenario angka negatif dan huruf pada kolom angka perlu dicatat sebagai tidak berlaku, bukan dilaporkan lulus.
 
 ## Menjalankan di Windows
@@ -83,25 +95,29 @@ Konfigurasi proyek saat ini: compile/target SDK 37, minimum SDK 24. Lingkungan y
 - [Bahan presentasi dan defense](PRESENTATION.md)
 - [Daftar persiapan pengumpulan](submission-checklist.md)
 
-Build debug terakhir berhasil pada 29 Oktober 2026. Laporan unit test lokal mencatat 11 tes, tanpa kegagalan atau error. Dua pengujian database terakhir juga lulus pada perangkat TECNO CM7. Batas cakupan bukti dan skenario manual yang belum dicatat dijelaskan dalam dokumen pengujian.
+Pada 12 November 2026 (versi dengan navigasi, tanggal, dan database gabungan) build debug, build APK tes perangkat, dan lint berhasil; unit test lokal mencatat 27 tes tanpa kegagalan. Tes perangkat (`app/src/androidTest`) juga lulus pada TECNO CM7 Android 16: 15 tes, 0 gagal. Notifikasi pengingat belum terbukti muncul pada perangkat. Batas cakupan bukti dan skenario manual yang belum dicatat dijelaskan dalam dokumen pengujian.
 
 ## Wireframe dan screenshot
 
 [Wireframe awal](wireframe.png). Angka dan isi pada wireframe adalah rancangan awal.
 
-Tiga gambar berikut merupakan **arsip versi awal**, belum merepresentasikan fitur Room, reminder terintegrasi, serta nama dummy terbaru. Ganti dengan tangkapan versi akhir sebelum pengumpulan.
+Screenshot versi 12 November 2026 (TECNO CM7, data simulasi). Keterangan lengkap dan batasannya ada di [screenshots/README.md](screenshots/README.md).
 
-![Arsip form dan ringkasan](screenshots/legacy-01.jpeg)
+| Beranda kosong | Beranda dengan data contoh | Validasi | Saran nama |
+| --- | --- | --- | --- |
+| ![Beranda kosong](screenshots/01-empty-home.png) | ![Beranda dengan data contoh](screenshots/02-home-sample.png) | ![Validasi form](screenshots/03-validation.png) | ![Saran nama obat](screenshots/04-name-suggestion.png) |
 
-![Arsip pengisian form](screenshots/legacy-02.jpeg)
+| Riwayat dengan filter | Konfirmasi hapus | Hapus dan Urungkan | Pengingat |
+| --- | --- | --- | --- |
+| ![Riwayat dengan filter](screenshots/05-history-filter.png) | ![Konfirmasi hapus](screenshots/06-delete-confirm.png) | ![Hapus dan Urungkan](screenshots/06b-delete-undo.png) | ![Halaman pengingat](screenshots/07-reminders.png) |
 
-![Arsip daftar catatan](screenshots/legacy-03.jpeg)
+Arsip versi awal (`legacy-01.jpeg` sampai `legacy-03.jpeg`) tetap disimpan di folder screenshots.
 
 ## Batasan UTS dan rencana UAS
 
-PDF UTS meminta data sementara dan empty state saat aplikasi pertama dibuka. Versi ini sudah menggunakan Room dan mengisi tiga dummy secara otomatis atas permintaan pengembangan. Komponen empty state tersedia dan diuji dengan daftar kosong, tetapi alur awal aplikasi produksi menampilkan dummy. Perbedaan ini perlu diselaraskan dengan ketentuan dosen; jangan menyatakan seluruh alur UTS sudah sama persis.
+PDF UTS meminta data sementara dan empty state saat aplikasi pertama dibuka. Instalasi baru kini menampilkan empty state; tiga dummy hanya ditambahkan melalui tombol **Isi data contoh**. Data tetap disimpan dengan Room, bukan data sementara; perbedaan ini perlu diselaraskan dengan ketentuan dosen. Pengguna versi lama yang sudah memiliki dummy tetap melihatnya setelah pembaruan.
 
-Room, Flow/ViewModel, dan notifikasi merupakan pengembangan di luar minimum UTS dan tidak otomatis menambah nilai. Catatan saat ini mendukung tambah dan tampil; edit/hapus catatan serta filter riwayat belum tersedia. Rencana UAS: CRUD catatan lengkap, halaman daftar/form/detail, navigasi, filter tanggal/status, dan rekap dari database.
+Room, Flow/ViewModel, notifikasi, navigasi, dan CRUD catatan merupakan pengembangan di luar minimum UTS dan tidak otomatis menambah nilai. Navigasi dibuat dengan `NavigationBar` Material 3 dan state halaman, tanpa library Navigation Compose. Ide lanjutan: menandai dosis otomatis sebagai Terlewat bila notifikasi tidak ditanggapi, serta rekap mingguan/bulanan.
 
 ## APK pengumpulan
 
